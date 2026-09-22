@@ -8,6 +8,13 @@ public class AsanaWorklogServiceTests
 {
     private static readonly TimeZoneInfo Berlin = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
+    /// <summary>
+    /// Schaltet die Sommerzeit ausgerechnet um Mitternacht um (anders als Berlin, das um 2/3 Uhr
+    /// umschaltet) — der einzige Härtefall, an dem lokale Mitternacht des gebuchten Tags gar nicht
+    /// oder doppelt existiert.
+    /// </summary>
+    private static readonly TimeZoneInfo Santiago = TimeZoneInfo.FindSystemTimeZoneById("Pacific SA Standard Time");
+
     private static AsanaTimeEntry Entry(
         string gid = "1",
         int minutes = 90,
@@ -107,6 +114,42 @@ public class AsanaWorklogServiceTests
         var entry = Assert.Single(result.Entries);
         Assert.Equal("Angebot schreiben", entry.ItemSummary);
         Assert.Equal("https://app.asana.com/0/0/600", entry.ItemUrl);
+    }
+
+    /// <summary>
+    /// Befund I-1 aus der Review: <see cref="AsanaProject.Name"/> ist nicht-nullbar mit Vorgabe
+    /// <see cref="string.Empty"/>, ein leerer Projektname ist also erreichbar. Die letzte Stufe der
+    /// Rückfallkette muss deshalb wie die beiden davor auf Leerstring prüfen — sonst bekäme die Zeile
+    /// ein korrektes Abzeichen „Asana", aber einen leeren Titel.
+    /// </summary>
+    [Fact]
+    public async Task FallsBackToFallbackKeyWhenProjectNameIsEmpty()
+    {
+        var result = await ServiceFor(Entry(project: string.Empty, category: null)).GetEntriesAsync(
+            new DateOnly(2026, 9, 21), new DateOnly(2026, 9, 27), CancellationToken.None);
+
+        var entry = Assert.Single(result.Entries);
+        Assert.False(string.IsNullOrEmpty(entry.ItemSummary));
+        Assert.Equal("Asana", entry.ItemSummary);
+    }
+
+    /// <summary>
+    /// Befund I-2 aus der Review: Chile schaltet die Sommerzeit ausgerechnet um Mitternacht um — am
+    /// 08.09.2024 existierte 00:00 Uhr Ortszeit dort schlicht nicht. <see cref="TimeZoneInfo.GetUtcOffset"/>
+    /// wirft trotzdem nicht, sondern liefert deterministisch einen gültigen Versatz; der Kalendertag
+    /// bleibt dabei der gebuchte.
+    /// </summary>
+    [Fact]
+    public async Task StaysOnTheBookedDayWhenLocalMidnightDoesNotExist()
+    {
+        var enteredOn = new DateOnly(2024, 9, 8);
+        var service = new AsanaWorklogService(
+            new FakeAsanaClient(new[] { Entry(enteredOn: "2024-09-08") }), "111", "900", Santiago);
+
+        var result = await service.GetEntriesAsync(enteredOn, enteredOn, CancellationToken.None);
+
+        var entry = Assert.Single(result.Entries);
+        Assert.Equal(enteredOn, entry.LocalDate(Santiago));
     }
 
     /// <summary>Ohne Projekt gibt es kein Abzeichen — der Eintrag bekommt eine sprechende Ersatzkennung.</summary>

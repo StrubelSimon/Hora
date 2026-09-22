@@ -82,7 +82,7 @@ public sealed class AsanaWorklogService : IWorklogService
             return string.Join(", ", categories);
         }
 
-        return entry.AttributableTo?.Name ?? FallbackKey;
+        return entry.AttributableTo?.Name is { Length: > 0 } projectName ? projectName : FallbackKey;
     }
 
     private string UrlFor(AsanaTimeEntry entry)
@@ -98,6 +98,12 @@ public sealed class AsanaWorklogService : IWorklogService
         return $"https://app.asana.com/0/{gid}";
     }
 
+    /// <summary>
+    /// An Tagen, an denen die Sommerzeit ausgerechnet um Mitternacht umschaltet (z. B. Chile),
+    /// existiert 00:00 Uhr Ortszeit entweder gar nicht oder doppelt. <see cref="TimeZoneInfo.GetUtcOffset"/>
+    /// wirft in beiden Fällen nicht, sondern liefert deterministisch einen gültigen Versatz — der
+    /// Kalendertag bleibt dabei immer der gebuchte, nur die Uhrzeit weicht dann von 00:00 ab.
+    /// </summary>
     private DateTimeOffset LocalMidnight(DateOnly date)
     {
         var localClock = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);

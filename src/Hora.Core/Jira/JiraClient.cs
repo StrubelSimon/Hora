@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Hora.Core.Http;
 using Hora.Core.Jira.Models;
 
 namespace Hora.Core.Jira;

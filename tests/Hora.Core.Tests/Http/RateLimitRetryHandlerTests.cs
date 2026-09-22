@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
-using Hora.Core.Jira;
+using Hora.Core.Http;
 
-namespace Hora.Core.Tests.Jira;
+namespace Hora.Core.Tests.Http;
 
 public class RateLimitRetryHandlerTests
 {

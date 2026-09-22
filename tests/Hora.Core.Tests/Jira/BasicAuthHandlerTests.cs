@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Hora.Core.Jira;
+using Hora.Core.Tests.Http;
 
 namespace Hora.Core.Tests.Jira;
 

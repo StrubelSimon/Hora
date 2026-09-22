@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace Hora.Core.Jira;
+namespace Hora.Core.Http;
 
 /// <summary>Wiederholt eine Anfrage bei HTTP 429 genau einmal nach Retry-After (Standard 2 s, maximal 30 s).</summary>
 public sealed class RateLimitRetryHandler : DelegatingHandler

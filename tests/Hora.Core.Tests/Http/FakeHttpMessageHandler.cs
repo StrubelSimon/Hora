@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 
-namespace Hora.Core.Tests.Jira;
+namespace Hora.Core.Tests.Http;
 
 /// <summary>Liefert vorbereitete Antworten in Reihenfolge und merkt sich alle Anfragen.</summary>
 internal sealed class FakeHttpMessageHandler : HttpMessageHandler

@@ -13,7 +13,8 @@ namespace Hora.App.Tests;
 /// misst jede Zeile ihre Auto-Spalten für sich: Ein längerer Ticketschlüssel oder eine längere Dauer
 /// schiebt den Balken dieser Zeile gegenüber der Zeile darüber zur Seite. Die Vorlage vergibt dafür
 /// SharedSizeGroups, die drei Ansichten setzen den Geltungsbereich auf ihrem ItemsControl. Diese
-/// Tests halten fest, dass Balken und Dauer dadurch bündig untereinander stehen.
+/// Tests halten fest, dass Balken und Dauer dadurch bündig untereinander stehen — und dass die
+/// Vorlage überhaupt etwas anzeigt: Ein gebrochener Bindungspfad bliebe sonst unbemerkt.
 /// </summary>
 public class IssueTotalAlignmentTests
 {
@@ -63,6 +64,43 @@ public class IssueTotalAlignmentTests
             Assert.Equal(lefts[1], lefts[3]);
         });
     }
+
+    /// <summary>
+    /// WPF meldet einen gebrochenen Bindungspfad nicht: Die Vorlage rendert dann stumm leere Spalten.
+    /// Die beiden Tests oben blieben davon unberührt — vier leere Spalten sind gleich breit, und die
+    /// MinWidth des Balkens hält auch die Breitenprüfung aufrecht. Dieser Test liest deshalb die
+    /// gerenderten Werte zurück und nagelt jede Bindung der Vorlage auf das Zeilenobjekt fest.
+    /// </summary>
+    [StaFact]
+    public void Template_bindings_fill_key_summary_bar_total_and_url_from_the_row()
+    {
+        StaRunner.Run(() =>
+        {
+            var list = BuildList(MixedRows);
+
+            // Je Zeile genau eine Schaltfläche: der Ticketschlüssel, der die Adresse als Befehlswert trägt.
+            var keyButtons = Descendants(list).OfType<Button>().ToList();
+            Assert.Equal(MixedRows.Length, keyButtons.Count);
+            Assert.Equal(MixedRows.Select(row => row.ItemKey), keyButtons.Select(button => button.Content as string));
+            Assert.Equal(MixedRows.Select(row => row.ItemUrl), keyButtons.Select(button => button.CommandParameter as string));
+
+            // Spalte 1 trägt den Titel, Spalte 3 die Gesamtdauer; die Spaltennummer trennt sie von
+            // den Textblöcken, die innerhalb der Schaltflächenvorlage stecken.
+            Assert.Equal(MixedRows.Select(row => row.ItemSummary), TextsInColumn(list, 1));
+            Assert.Equal(MixedRows.Select(row => row.TotalText), TextsInColumn(list, 3));
+
+            var bars = Descendants(list).OfType<ProgressBar>().ToList();
+            Assert.Equal(MixedRows.Select(row => row.BarRatio), bars.Select(bar => bar.Value));
+        });
+    }
+
+    /// <summary>Die Texte aller Textblöcke, die unmittelbar in der genannten Gitterspalte stehen.</summary>
+    private static IEnumerable<string> TextsInColumn(DependencyObject root, int column) =>
+        Descendants(root)
+            .OfType<TextBlock>()
+            .Where(text => Grid.GetColumn(text) == column)
+            .Select(text => text.Text)
+            .ToList();
 
     private static ItemsControl BuildList(IReadOnlyList<IssueTotalRow> rows)
     {

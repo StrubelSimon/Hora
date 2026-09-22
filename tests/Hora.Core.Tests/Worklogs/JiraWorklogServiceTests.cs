@@ -139,7 +139,7 @@ public class JiraWorklogServiceTests
     }
 
     [Fact]
-    public async Task Maps_summary_duration_start_and_comment()
+    public async Task Maps_all_entry_fields_including_source_and_address()
     {
         var (service, jira, _) = Create();
         jira.Issues.Add(Issue("ABC-7", "Login-Maske bauen"));
@@ -153,6 +153,14 @@ public class JiraWorklogServiceTests
         Assert.Equal(TimeSpan.FromMinutes(90), entry.Duration);
         Assert.Equal("Review mit Team", entry.Comment);
         Assert.Equal(new DateTimeOffset(2026, 9, 16, 9, 0, 0, TimeSpan.FromHours(2)), entry.Started);
+
+        // Der ganze Weg von baseUrl bis zur fertigen Ticketadresse, als ausgeschriebener Wert statt
+        // als nachgerechneter: Reicht der Dienst der Fabrik versehentlich ein anderes Feld durch,
+        // fiele das sonst nirgends auf — die Adresse baut seit Task 6 niemand sonst mehr zusammen.
+        Assert.Equal("https://example.atlassian.net/browse/ABC-7", entry.ItemUrl);
+        Assert.Equal(WorklogSource.Jira, entry.Source);
+        // Jira-Worklogs tragen immer eine Uhrzeit; allein daran entscheidet die Zeile ihren Zeitblock.
+        Assert.True(entry.HasStartTime);
     }
 
     [Fact]

@@ -155,4 +155,83 @@ public class AsanaConnectViewModelTests
         Assert.True(viewModel.IsTokenStep);
         Assert.Equal("asana-token", viewModel.Token);
     }
+
+    // ===================== Fix-Runde 1 (I-1): geprüfter Token und gespeicherter Token =====================
+
+    /// <summary>
+    /// Der Weg, den die Review gefunden hat: Token A prüfen, zurück, Token B eintippen. Die
+    /// geprüfte Identität gehört zu A — sie muss mit der Eingabe fallen, sonst ließe sich B mit
+    /// Kennung und Workspace von A speichern.
+    /// </summary>
+    [Fact]
+    public async Task ChangingTheTokenAfterGoingBackWithdrawsTheVerifiedIdentity()
+    {
+        var viewModel = Build(new StubAsanaClient(User("ADVISORI")), out var store);
+        viewModel.Token = "asana-token";
+        await viewModel.ContinueCommand.ExecuteAsync(null);
+        viewModel.BackCommand.Execute(null);
+
+        viewModel.Token = "  never-verified  ";
+
+        Assert.False(viewModel.ConnectCommand.CanExecute(null));
+        Assert.Null(store.Stored);
+    }
+
+    /// <summary>
+    /// CanExecute allein genügt nicht: Execute fragt es von sich aus nicht ab. Auch der
+    /// unmittelbare Aufruf darf nichts speichern, solange die Identität nicht zum eingegebenen
+    /// Token gehört.
+    /// </summary>
+    [Fact]
+    public async Task AChangedTokenStoresNothingEvenWhenConnectIsExecutedDirectly()
+    {
+        var viewModel = Build(new StubAsanaClient(User("ADVISORI")), out var store);
+        viewModel.Token = "asana-token";
+        await viewModel.ContinueCommand.ExecuteAsync(null);
+        viewModel.BackCommand.Execute(null);
+        viewModel.Token = "never-verified";
+
+        viewModel.ConnectCommand.Execute(null);
+
+        Assert.Null(store.Stored);
+    }
+
+    /// <summary>
+    /// Der geordnete zweite Anlauf: Wer zurückgeht, einen anderen Token eintippt und erneut prüfen
+    /// lässt, speichert Token und Identität als ein Stück — niemals Token B mit der Kennung von A.
+    /// </summary>
+    [Fact]
+    public async Task AVerifiedSecondTokenIsStoredWithItsOwnIdentity()
+    {
+        var store = new FakeAsanaCredentialStore();
+        var first = new StubAsanaClient(new AsanaUser
+        {
+            Gid = "111",
+            Name = "Simon Strubel",
+            Email = "simon.strubel@advisori.de",
+            Workspaces = new List<AsanaWorkspace> { new() { Gid = "900", Name = "ADVISORI" } },
+        });
+        var second = new StubAsanaClient(new AsanaUser
+        {
+            Gid = "222",
+            Name = "Zweites Konto",
+            Email = "zweites@example.de",
+            Workspaces = new List<AsanaWorkspace> { new() { Gid = "901", Name = "Privat" } },
+        });
+        var viewModel = new AsanaConnectViewModel(token => token == "token-b" ? second : first, store);
+
+        viewModel.Token = "token-a";
+        await viewModel.ContinueCommand.ExecuteAsync(null);
+        viewModel.BackCommand.Execute(null);
+        viewModel.Token = "token-b";
+        await viewModel.ContinueCommand.ExecuteAsync(null);
+        viewModel.ConnectCommand.Execute(null);
+
+        Assert.NotNull(store.Stored);
+        Assert.Equal("token-b", store.Stored!.Token);
+        Assert.Equal("222", store.Stored.UserGid);
+        Assert.Equal("Zweites Konto", store.Stored.UserName);
+        Assert.Equal("901", store.Stored.WorkspaceGid);
+        Assert.Equal("Privat", store.Stored.WorkspaceName);
+    }
 }

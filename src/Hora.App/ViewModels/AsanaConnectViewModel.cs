@@ -26,6 +26,14 @@ public partial class AsanaConnectViewModel : ObservableObject
 
     private AsanaUser? _user;
 
+    /// <summary>
+    /// Der Token, mit dem die Identität in <see cref="_user"/> tatsächlich geprüft wurde.
+    /// Gespeichert wird dieser, nicht der Inhalt des Eingabefelds: Beides kann auseinanderlaufen,
+    /// sobald jemand zurückgeht und weitertippt, und dann gehörten Token und Kennung zu
+    /// verschiedenen Konten.
+    /// </summary>
+    private string _verifiedToken = string.Empty;
+
     public AsanaConnectViewModel(Func<string, IAsanaClient> clientFactory, IAsanaCredentialStore store)
     {
         _clientFactory = clientFactory;
@@ -39,8 +47,19 @@ public partial class AsanaConnectViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ContinueCommand))]
     private string _token = string.Empty;
 
+    /// <summary>
+    /// Ein geänderter Token entwertet die geprüfte Identität: Was hier steht, ist wieder eine
+    /// ungeprüfte Behauptung, bis „Weiter“ sie bei Asana bestätigt hat.
+    /// </summary>
+    partial void OnTokenChanged(string value)
+    {
+        _user = null;
+        ConnectCommand.NotifyCanExecuteChanged();
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsWorkspaceStep))]
+    [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
     private bool _isTokenStep = true;
 
     [ObservableProperty]
@@ -88,6 +107,7 @@ public partial class AsanaConnectViewModel : ObservableObject
             }
 
             _user = user;
+            _verifiedToken = Token.Trim();
             UserName = user.Name;
             UserEmail = user.Email ?? string.Empty;
 
@@ -125,18 +145,20 @@ public partial class AsanaConnectViewModel : ObservableObject
         }
     }
 
-    private bool CanConnect() => _user is not null && SelectedWorkspace is not null;
+    private bool CanConnect() => IsWorkspaceStep && _user is not null && SelectedWorkspace is not null;
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
     private void Connect()
     {
-        if (_user is null || SelectedWorkspace is null)
+        // Der Wächter wiederholt CanConnect: Execute fragt es von sich aus nicht ab, und genau
+        // dieser Weg dürfte niemals einen ungeprüften Token speichern.
+        if (!IsWorkspaceStep || _user is null || SelectedWorkspace is null)
         {
             return;
         }
 
         _store.Save(new AsanaCredentials(
-            Token.Trim(),
+            _verifiedToken,
             _user.Gid,
             _user.Name,
             SelectedWorkspace.Gid,

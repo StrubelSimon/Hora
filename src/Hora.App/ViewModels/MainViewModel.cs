@@ -119,8 +119,21 @@ public partial class MainViewModel : ObservableObject
         {
             ErrorMessage = message,
         };
-        login.LoggedIn += ShowOverview;
+        login.LoggedIn += OnLoggedInViaForm;
         CurrentScreen = login;
+    }
+
+    /// <summary>
+    /// Anmeldung über das Formular ist eine frische Identitätsbehauptung — anders als die
+    /// automatische Anmeldung in StartAsync mit den gespeicherten Zugangsdaten, die dieselbe
+    /// Identität fortsetzt und deshalb asana.dat unangetastet lässt. Hier meldet sich möglicherweise
+    /// jemand anderes an; eine stehengebliebene Asana-Verbindung des Vorgängers würde sonst den
+    /// Steckplatz der neuen Identität besetzen. Deshalb fällt sie hier, bevor die Übersicht entsteht.
+    /// </summary>
+    private void OnLoggedInViaForm(IJiraClient client, JiraUser user, string baseUrl)
+    {
+        _asanaCredentialStore?.Delete();
+        ShowOverview(client, user, baseUrl);
     }
 
     private void ShowOverview(IJiraClient client, JiraUser user, string baseUrl)

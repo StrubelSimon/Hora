@@ -90,4 +90,55 @@ public class MainViewModelAsanaTests
         Assert.True(asanaStore.DeleteCount > 0);
         Assert.Null(jiraStore.Stored);
     }
+
+    /// <summary>
+    /// Fix-Runde 1 (I-1): Eine Anmeldung über das Formular ist eine frische Identitätsbehauptung —
+    /// möglicherweise meldet sich jemand anderes an. Eine stehengebliebene Asana-Verbindung des
+    /// Vorgängers muss deshalb fallen, sonst erbt die neue Jira-Identität sie stillschweigend.
+    /// </summary>
+    [Fact]
+    public async Task LoginViaFormDeletesAnExistingAsanaConnection()
+    {
+        var asanaStore = new FakeAsanaCredentialStore
+        {
+            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+        };
+        var viewModel = Build(asanaStore, out var jiraStore, out _);
+        // Keine gespeicherte Jira-Sitzung: StartAsync zeigt das Anmeldeformular statt automatisch
+        // anzumelden.
+        jiraStore.Stored = null;
+        await viewModel.StartAsync();
+        var login = Assert.IsType<LoginViewModel>(viewModel.CurrentScreen);
+        login.BaseUrl = "https://example.atlassian.net";
+        login.Email = "a@b.de";
+        login.ApiToken = "jira-token";
+
+        await login.LoginCommand.ExecuteAsync(null);
+
+        Assert.IsType<OverviewViewModel>(viewModel.CurrentScreen);
+        Assert.Null(asanaStore.Stored);
+        Assert.True(asanaStore.DeleteCount > 0);
+    }
+
+    /// <summary>
+    /// Fix-Runde 1 (I-1), der wichtigere der beiden Tests: Die automatische Anmeldung in StartAsync
+    /// mit den gespeicherten Zugangsdaten setzt dieselbe Identität fort. Anders als die Anmeldung
+    /// über das Formular darf sie eine vorhandene Asana-Verbindung nicht anrühren.
+    /// </summary>
+    [Fact]
+    public async Task AutomaticLoginAtStartupLeavesAnExistingAsanaConnectionUntouched()
+    {
+        var asanaStore = new FakeAsanaCredentialStore
+        {
+            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+        };
+        var viewModel = Build(asanaStore, out _, out var tokensUsed);
+
+        await viewModel.StartAsync();
+
+        Assert.IsType<OverviewViewModel>(viewModel.CurrentScreen);
+        Assert.NotNull(asanaStore.Stored);
+        Assert.Equal(0, asanaStore.DeleteCount);
+        Assert.Equal("asana-token", Assert.Single(tokensUsed));
+    }
 }

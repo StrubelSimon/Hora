@@ -7,7 +7,7 @@ internal sealed class FakeWorklogService : IWorklogService
     public List<(DateOnly From, DateOnly To)> Calls { get; } = new();
 
     public Func<DateOnly, DateOnly, WorklogFetchResult> Respond { get; set; } =
-        (_, _) => new WorklogFetchResult(Array.Empty<WorklogEntry>(), Array.Empty<string>());
+        (_, _) => new WorklogFetchResult(Array.Empty<WorklogEntry>(), Array.Empty<string>(), Array.Empty<string>());
 
     /// <summary>Wird beim nächsten Aufruf geworfen und dann zurückgesetzt.</summary>
     public Exception? ThrowOnce { get; set; }

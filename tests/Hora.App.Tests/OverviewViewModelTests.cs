@@ -152,6 +152,7 @@ public class OverviewViewModelTests
         {
             Respond = (_, _) => new WorklogFetchResult(
                 new[] { Entry(16, 9, 60), Entry(16, 14, 30, "ABC-2"), Entry(17, 10, 45) },
+                Array.Empty<string>(),
                 Array.Empty<string>()),
         };
         var vm = CreateViewModel(service);
@@ -265,7 +266,7 @@ public class OverviewViewModelTests
     {
         var service = new FakeWorklogService
         {
-            Respond = (_, _) => new WorklogFetchResult(Array.Empty<WorklogEntry>(), new[] { "ABC-3", "ABC-9" }),
+            Respond = (_, _) => new WorklogFetchResult(Array.Empty<WorklogEntry>(), new[] { "ABC-3", "ABC-9" }, Array.Empty<string>()),
         };
         var vm = CreateViewModel(service);
 
@@ -293,8 +294,8 @@ public class OverviewViewModelTests
         var service = new FakeWorklogService
         {
             Respond = (from, _) => from == new DateOnly(2026, 9, 14)
-                ? new WorklogFetchResult(new[] { Entry(16, 9, 500) }, Array.Empty<string>())
-                : new WorklogFetchResult(new[] { Entry(23, 9, 60) }, Array.Empty<string>()),
+                ? new WorklogFetchResult(new[] { Entry(16, 9, 500) }, Array.Empty<string>(), Array.Empty<string>())
+                : new WorklogFetchResult(new[] { Entry(23, 9, 60) }, Array.Empty<string>(), Array.Empty<string>()),
         };
         var gate = new TaskCompletionSource();
         service.Gate = gate;
@@ -442,7 +443,7 @@ public class OverviewViewModelTests
         // Während des Ladens stand deshalb der neue Zeitraumtitel über den Zahlen des alten.
         var service = new FakeWorklogService
         {
-            Respond = (_, _) => new WorklogFetchResult(new[] { Entry(16, 9, 240) }, Array.Empty<string>()),
+            Respond = (_, _) => new WorklogFetchResult(new[] { Entry(16, 9, 240) }, Array.Empty<string>(), Array.Empty<string>()),
         };
         var vm = CreateViewModel(service);
         await vm.LoadAsync();
@@ -476,7 +477,7 @@ public class OverviewViewModelTests
         // Titel des neuen stehen — sichtbar nur das allgemeine Fehlerbanner.
         var service = new FakeWorklogService
         {
-            Respond = (_, _) => new WorklogFetchResult(new[] { Entry(16, 9, 240) }, Array.Empty<string>()),
+            Respond = (_, _) => new WorklogFetchResult(new[] { Entry(16, 9, 240) }, Array.Empty<string>(), Array.Empty<string>()),
         };
         var vm = CreateViewModel(service);
         await vm.LoadAsync();
@@ -510,6 +511,7 @@ public class OverviewViewModelTests
                     Entry(20, 9, 60), // So 20.09., 1h – dieselbe Woche, Wochenende
                     Entry(25, 9, 180), // Fr 25.09., 3h – anderer Woche, aber selber Kalendermonat
                 },
+                Array.Empty<string>(),
                 Array.Empty<string>()),
         };
         var vm = CreateViewModel(service);
@@ -548,6 +550,7 @@ public class OverviewViewModelTests
         {
             Respond = (_, _) => new WorklogFetchResult(
                 new[] { Entry(16, 9, 240), Entry(19, 9, 180) }, // Mi 4h (Soll 8h), Sa 3h (Soll 0h)
+                Array.Empty<string>(),
                 Array.Empty<string>()),
         };
         var vm = CreateViewModel(service);

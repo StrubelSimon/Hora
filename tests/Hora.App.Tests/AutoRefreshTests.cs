@@ -26,7 +26,7 @@ public class AutoRefreshTests
 
     private static FakeWorklogService ServiceWithOneEntry() => new()
     {
-        Respond = (_, _) => new WorklogFetchResult(new[] { Entry(16, 9, 60) }, Array.Empty<string>()),
+        Respond = (_, _) => new WorklogFetchResult(new[] { Entry(16, 9, 60) }, Array.Empty<string>(), Array.Empty<string>()),
     };
 
     private static OverviewViewModel CreateViewModel(FakeWorklogService service, IRefreshScheduler scheduler) =>

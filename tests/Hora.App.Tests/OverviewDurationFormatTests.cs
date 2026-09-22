@@ -38,6 +38,7 @@ public class OverviewDurationFormatTests
                 Entry(16, 18, 15, "ABC-2"),     // Mi 16.09., 15m
                 Entry(17, 9, 120),              // Do 17.09., 2h
             },
+            Array.Empty<string>(),
             Array.Empty<string>()),
     };
 
@@ -98,7 +99,7 @@ public class OverviewDurationFormatTests
     {
         var service = new FakeWorklogService
         {
-            Respond = (_, _) => new WorklogFetchResult(new[] { Entry(16, 9, 465) }, Array.Empty<string>()),
+            Respond = (_, _) => new WorklogFetchResult(new[] { Entry(16, 9, 465) }, Array.Empty<string>(), Array.Empty<string>()),
         };
         var vm = CreateViewModel(service, durationFormat: DurationFormat.DecimalHours);
 

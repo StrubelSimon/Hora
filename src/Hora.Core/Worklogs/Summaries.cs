@@ -15,5 +15,11 @@ public sealed record IssueTotal(
     int EntryCount,
     string ItemUrl);
 
-/// <summary>Ergebnis eines Abrufs: Einträge plus Tickets, deren Worklogs nicht geladen werden konnten.</summary>
-public sealed record WorklogFetchResult(IReadOnlyList<WorklogEntry> Entries, IReadOnlyList<string> FailedIssueKeys);
+/// <summary>
+/// Ergebnis eines Abrufs: Einträge, Jira-Tickets mit fehlgeschlagenem Worklog-Abruf und fertige
+/// Warnsätze aus Nicht-Jira-Quellen.
+/// </summary>
+public sealed record WorklogFetchResult(
+    IReadOnlyList<WorklogEntry> Entries,
+    IReadOnlyList<string> FailedIssueKeys,
+    IReadOnlyList<string> Warnings);

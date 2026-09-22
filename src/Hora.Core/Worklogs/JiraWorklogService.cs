@@ -115,7 +115,8 @@ public sealed class JiraWorklogService : IWorklogService
                 .OrderBy(entry => entry.Started)
                 .ThenBy(entry => entry.ItemKey, StringComparer.Ordinal)
                 .ToList(),
-            failedIssueKeys.OrderBy(key => key, StringComparer.Ordinal).ToList());
+            failedIssueKeys.OrderBy(key => key, StringComparer.Ordinal).ToList(),
+            Array.Empty<string>());
     }
 
     private bool IsOwn(JiraWorklog worklog) =>

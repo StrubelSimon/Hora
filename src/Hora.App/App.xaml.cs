@@ -1,6 +1,7 @@
 using System.Windows;
 using Hora.App.Services;
 using Hora.App.ViewModels;
+using Hora.Core.Asana;
 using Hora.Core.Jira;
 using Hora.Core.Logging;
 using Hora.Core.Storage;
@@ -78,7 +79,9 @@ public partial class App : Application
             () => DateOnly.FromDateTime(DateTime.Now),
             themeManager,
             now: null,
-            refreshScheduler: new DispatcherRefreshScheduler(logger));
+            refreshScheduler: new DispatcherRefreshScheduler(logger),
+            asanaCredentialStore: new DpapiAsanaCredentialStore(paths),
+            asanaClientFactory: AsanaClient.Create);
 
         var window = new MainWindow { DataContext = mainViewModel };
         window.Show();

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Hora.App.Services;
+using Hora.Core.Asana;
 using Hora.Core.Jira;
 using Hora.Core.Jira.Models;
 using Hora.Core.Logging;
@@ -18,9 +19,15 @@ public partial class MainViewModel : ObservableObject
     private readonly Func<DateOnly> _today;
     private readonly IThemeSwitcher? _themeManager;
     private readonly IRefreshScheduler? _refreshScheduler;
+    private readonly IAsanaCredentialStore? _asanaCredentialStore;
+    private readonly Func<string, IAsanaClient>? _asanaClientFactory;
 
     // Eigene Uhr für den Zeitpunkt der letzten Synchronisation, damit dieser Zeitpunkt prüfbar ist.
     private readonly Func<DateTimeOffset> _now;
+
+    // Lebt, solange die Übersicht lebt. Über ihn wechselt die Profilseite den Asana-Steckplatz,
+    // ohne dass die Übersicht neu aufgebaut und das gewählte Datum verloren geht.
+    private CompositeWorklogService? _worklogs;
 
     public MainViewModel(
         ICredentialStore credentialStore,
@@ -30,7 +37,9 @@ public partial class MainViewModel : ObservableObject
         Func<DateOnly> today,
         IThemeSwitcher? themeManager = null,
         Func<DateTimeOffset>? now = null,
-        IRefreshScheduler? refreshScheduler = null)
+        IRefreshScheduler? refreshScheduler = null,
+        IAsanaCredentialStore? asanaCredentialStore = null,
+        Func<string, IAsanaClient>? asanaClientFactory = null)
     {
         _credentialStore = credentialStore;
         _settingsStore = settingsStore;
@@ -44,6 +53,8 @@ public partial class MainViewModel : ObservableObject
         // Ein Taktgeber für die ganze Laufzeit: Er hängt jeweils an der lebenden Übersicht und
         // steht still, solange keine da ist (Login, nach dem Abmelden).
         _refreshScheduler = refreshScheduler;
+        _asanaCredentialStore = asanaCredentialStore;
+        _asanaClientFactory = asanaClientFactory;
     }
 
     public string AppTitle => $"Hora {AppVersion.Current}";
@@ -75,6 +86,7 @@ public partial class MainViewModel : ObservableObject
             catch (JiraAuthenticationException)
             {
                 _credentialStore.Delete();
+                _asanaCredentialStore?.Delete();
                 ShowLogin("Gespeicherte Anmeldung ist ungültig. Bitte erneut anmelden.");
             }
             catch (JiraException ex)
@@ -116,7 +128,12 @@ public partial class MainViewModel : ObservableObject
         var zone = TimeZoneInfo.Local;
         LogTimeZoneMismatch(user.TimeZone, zone);
 
-        var worklogs = new JiraWorklogService(client, user.AccountId, baseUrl, zone, _logger);
+        var jiraWorklogs = new JiraWorklogService(client, user.AccountId, baseUrl, zone, _logger);
+        var worklogs = new CompositeWorklogService(jiraWorklogs, _logger);
+        _worklogs = worklogs;
+        worklogs.AsanaTokenRejected += OnAsanaTokenRejected;
+        ApplyAsanaConnection();
+
         var settings = _settingsStore.Load();
         // Diese eine Instanz lebt, solange die Übersicht lebt; der Schrittschalter der Profilseite
         // ändert genau sie, damit Kennzahlen und Balken sofort mit den neuen Sollstunden rechnen.
@@ -140,12 +157,14 @@ public partial class MainViewModel : ObservableObject
         {
             StopAutoRefresh(overview);
             _credentialStore.Delete();
+            _asanaCredentialStore?.Delete();
             ShowLogin(null);
         };
         overview.SessionExpired += () =>
         {
             StopAutoRefresh(overview);
             _credentialStore.Delete();
+            _asanaCredentialStore?.Delete();
             ShowLogin("Die Anmeldung ist abgelaufen oder wurde widerrufen.");
         };
         overview.SyncSucceeded += StoreLastSync;
@@ -153,6 +172,58 @@ public partial class MainViewModel : ObservableObject
 
         CurrentScreen = overview;
         _ = RunInitialLoadAsync(overview);
+    }
+
+    /// <summary>
+    /// Besetzt den Asana-Steckplatz aus der gespeicherten Verbindung oder leert ihn, wenn keine
+    /// da ist. Wird beim Aufbau der Übersicht und nach jedem Verbinden oder Trennen aufgerufen.
+    /// </summary>
+    private void ApplyAsanaConnection()
+    {
+        if (_worklogs is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var credentials = _asanaCredentialStore?.Load();
+            if (credentials is null || _asanaClientFactory is null)
+            {
+                _worklogs.SetAsanaProvider(null);
+                return;
+            }
+
+            var client = _asanaClientFactory(credentials.Token);
+            _worklogs.SetAsanaProvider(new AsanaWorklogService(
+                client, credentials.UserGid, credentials.WorkspaceGid, TimeZoneInfo.Local));
+        }
+        catch (Exception ex)
+        {
+            // Eine unlesbare asana.dat oder ein Fehler beim Bauen des Clients darf die Übersicht
+            // nicht kosten: Ohne Asana zeigt Hora weiterhin die Jira-Zeiten.
+            _logger.Error("Asana-Verbindung konnte nicht hergestellt werden", ex);
+            _worklogs.SetAsanaProvider(null);
+        }
+    }
+
+    /// <summary>
+    /// Asana hat den Token abgelehnt. Die gespeicherte Verbindung ist damit wertlos; sie wird
+    /// gelöscht und der Steckplatz geleert, damit nicht jeder Takt erneut in dasselbe 401 läuft.
+    /// Die Jira-Sitzung bleibt unberührt.
+    /// </summary>
+    private void OnAsanaTokenRejected()
+    {
+        try
+        {
+            _asanaCredentialStore?.Delete();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Asana-Verbindung konnte nicht gelöscht werden", ex);
+        }
+
+        _worklogs?.SetAsanaProvider(null);
     }
 
     /// <summary>
@@ -173,6 +244,7 @@ public partial class MainViewModel : ObservableObject
             profile.Detach();
             StopAutoRefresh(overview);
             _credentialStore.Delete();
+            _asanaCredentialStore?.Delete();
             ShowLogin(null);
         };
         profile.DisplaySettingsChanged += () =>

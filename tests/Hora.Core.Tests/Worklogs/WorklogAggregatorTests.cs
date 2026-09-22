@@ -7,8 +7,10 @@ public class WorklogAggregatorTests
     private static readonly TimeZoneInfo Berlin = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
     private static readonly TimeSpan Cest = TimeSpan.FromHours(2);
 
-    private static WorklogEntry Entry(string issueKey, int day, int hour, int minute, int durationMinutes, string summary = "Titel") =>
-        new(issueKey, summary, new DateTimeOffset(2026, 9, day, hour, minute, 0, Cest), TimeSpan.FromMinutes(durationMinutes), string.Empty);
+    private const string BaseUrl = "https://example.atlassian.net";
+
+    private static WorklogEntry Entry(string itemKey, int day, int hour, int minute, int durationMinutes, string summary = "Titel") =>
+        WorklogEntry.Jira(itemKey, summary, new DateTimeOffset(2026, 9, day, hour, minute, 0, Cest), TimeSpan.FromMinutes(durationMinutes), string.Empty, BaseUrl);
 
     [Fact]
     public void BuildDaySummary_keeps_only_entries_of_that_day_sorted_by_start()
@@ -23,7 +25,7 @@ public class WorklogAggregatorTests
         var summary = WorklogAggregator.BuildDaySummary(entries, new DateOnly(2026, 9, 16), Berlin);
 
         Assert.Equal(new DateOnly(2026, 9, 16), summary.Date);
-        Assert.Equal(new[] { "ABC-2", "ABC-1" }, summary.Entries.Select(e => e.IssueKey));
+        Assert.Equal(new[] { "ABC-2", "ABC-1" }, summary.Entries.Select(e => e.ItemKey));
         Assert.Equal(TimeSpan.FromMinutes(90), summary.Total);
     }
 
@@ -38,15 +40,15 @@ public class WorklogAggregatorTests
 
         var summary = WorklogAggregator.BuildDaySummary(entries, new DateOnly(2026, 9, 16), Berlin);
 
-        Assert.Equal(new[] { "ABC-1" }, summary.Entries.Select(e => e.IssueKey));
+        Assert.Equal(new[] { "ABC-1" }, summary.Entries.Select(e => e.ItemKey));
     }
 
     [Fact]
     public void BuildDaySummary_converts_foreign_offsets_into_the_given_zone()
     {
         // 22:30 UTC am 16.9. ist 00:30 am 17.9. in Berlin (Sommerzeit).
-        var lateUtc = new WorklogEntry("ABC-1", "Titel",
-            new DateTimeOffset(2026, 9, 16, 22, 30, 0, TimeSpan.Zero), TimeSpan.FromMinutes(15), string.Empty);
+        var lateUtc = WorklogEntry.Jira("ABC-1", "Titel",
+            new DateTimeOffset(2026, 9, 16, 22, 30, 0, TimeSpan.Zero), TimeSpan.FromMinutes(15), string.Empty, BaseUrl);
 
         var day16 = WorklogAggregator.BuildDaySummary(new[] { lateUtc }, new DateOnly(2026, 9, 16), Berlin);
         var day17 = WorklogAggregator.BuildDaySummary(new[] { lateUtc }, new DateOnly(2026, 9, 17), Berlin);
@@ -97,11 +99,11 @@ public class WorklogAggregatorTests
         var totals = WorklogAggregator.BuildIssueTotals(entries);
 
         Assert.Equal(2, totals.Count);
-        Assert.Equal("ABC-2", totals[0].IssueKey);
+        Assert.Equal("ABC-2", totals[0].ItemKey);
         Assert.Equal(TimeSpan.FromMinutes(120), totals[0].Total);
         Assert.Equal(1, totals[0].EntryCount);
-        Assert.Equal("ABC-1", totals[1].IssueKey);
-        Assert.Equal("Erstes", totals[1].IssueSummary);
+        Assert.Equal("ABC-1", totals[1].ItemKey);
+        Assert.Equal("Erstes", totals[1].ItemSummary);
         Assert.Equal(TimeSpan.FromMinutes(90), totals[1].Total);
         Assert.Equal(2, totals[1].EntryCount);
     }
@@ -113,6 +115,6 @@ public class WorklogAggregatorTests
 
         var totals = WorklogAggregator.BuildIssueTotals(entries);
 
-        Assert.Equal(new[] { "ABC-1", "ZZZ-1" }, totals.Select(t => t.IssueKey));
+        Assert.Equal(new[] { "ABC-1", "ZZZ-1" }, totals.Select(t => t.ItemKey));
     }
 }

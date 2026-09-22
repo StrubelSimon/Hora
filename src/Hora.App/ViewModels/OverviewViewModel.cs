@@ -42,7 +42,6 @@ public partial class OverviewViewModel : ObservableObject
     public OverviewViewModel(
         IWorklogService worklogs,
         JiraUser user,
-        string baseUrl,
         TimeZoneInfo zone,
         IAppLogger logger,
         Func<DateOnly> today,
@@ -59,10 +58,10 @@ public partial class OverviewViewModel : ObservableObject
         _refreshScheduler = refreshScheduler;
 
         UserDisplayName = user.DisplayName;
-        Day = new DayViewModel(zone, baseUrl, durationFormat);
-        Week = new WeekViewModel(baseUrl, _schedule, durationFormat);
+        Day = new DayViewModel(zone, durationFormat);
+        Week = new WeekViewModel(_schedule, durationFormat);
         Week.DaySelected += ShowDayFor;
-        Month = new MonthViewModel(baseUrl, _schedule, durationFormat);
+        Month = new MonthViewModel(_schedule, durationFormat);
         Month.DaySelected += ShowDayFor;
 
         // Die Felder direkt setzen, nicht die Eigenschaften: Der Modus soll beim Aufbau weder ein

@@ -12,14 +12,15 @@ public class WorklogRowTests
     [Fact]
     public void Time_range_shows_start_and_end_in_local_time()
     {
-        var entry = new WorklogEntry(
+        var entry = WorklogEntry.Jira(
             "ABC-1",
             "Titel",
             new DateTimeOffset(2026, 9, 16, 9, 0, 0, TimeSpan.FromHours(2)),
             TimeSpan.FromMinutes(90),
-            string.Empty);
+            string.Empty,
+            BaseUrl);
 
-        var row = WorklogRow.From(entry, Berlin, BaseUrl);
+        var row = WorklogRow.From(entry, Berlin);
 
         Assert.Equal("09:00", row.StartText);
         Assert.Equal("09:00 – 10:30", row.TimeRangeText);
@@ -32,14 +33,15 @@ public class WorklogRowTests
         // Befund H: Die Endzeit wurde im Offset des Startzeitpunkts gerechnet. Am 29.03.2026
         // springt die Uhr in Berlin um 02:00 auf 03:00 — eine Buchung von 01:30 über zwei Stunden
         // endet deshalb um 04:30 Ortszeit und wurde als "01:30 – 03:30" angezeigt.
-        var entry = new WorklogEntry(
+        var entry = WorklogEntry.Jira(
             "ABC-1",
             "Titel",
             new DateTimeOffset(2026, 3, 29, 1, 30, 0, TimeSpan.FromHours(1)),
             TimeSpan.FromHours(2),
-            string.Empty);
+            string.Empty,
+            BaseUrl);
 
-        var row = WorklogRow.From(entry, Berlin, BaseUrl);
+        var row = WorklogRow.From(entry, Berlin);
 
         Assert.Equal("01:30", row.StartText);
         Assert.Equal("01:30 – 04:30", row.TimeRangeText);
@@ -52,14 +54,15 @@ public class WorklogRowTests
     {
         // Gegenprobe zur Rückstellung: Am 25.10.2026 springt die Uhr in Berlin um 03:00 auf 02:00.
         // Eine Buchung ab 02:30 Sommerzeit (+02:00) über zwei Stunden endet um 03:30 Winterzeit.
-        var entry = new WorklogEntry(
+        var entry = WorklogEntry.Jira(
             "ABC-1",
             "Titel",
             new DateTimeOffset(2026, 10, 25, 2, 30, 0, TimeSpan.FromHours(2)),
             TimeSpan.FromHours(2),
-            string.Empty);
+            string.Empty,
+            BaseUrl);
 
-        var row = WorklogRow.From(entry, Berlin, BaseUrl);
+        var row = WorklogRow.From(entry, Berlin);
 
         Assert.Equal("02:30", row.StartText);
         Assert.Equal("02:30 – 03:30", row.TimeRangeText);

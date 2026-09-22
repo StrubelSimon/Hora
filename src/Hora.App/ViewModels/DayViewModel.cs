@@ -9,12 +9,10 @@ namespace Hora.App.ViewModels;
 public partial class DayViewModel : ObservableObject
 {
     private readonly TimeZoneInfo _zone;
-    private readonly string _baseUrl;
 
-    public DayViewModel(TimeZoneInfo zone, string baseUrl, DurationFormat durationFormat = DurationFormat.HoursMinutes)
+    public DayViewModel(TimeZoneInfo zone, DurationFormat durationFormat = DurationFormat.HoursMinutes)
     {
         _zone = zone;
-        _baseUrl = baseUrl;
         DurationFormat = durationFormat;
     }
 
@@ -39,7 +37,7 @@ public partial class DayViewModel : ObservableObject
         Rows.Clear();
         foreach (var entry in summary.Entries)
         {
-            Rows.Add(WorklogRow.From(entry, _zone, _baseUrl, DurationFormat));
+            Rows.Add(WorklogRow.From(entry, _zone, DurationFormat));
         }
 
         // Der Balken je Ticket bemisst sich am größten Eintrag des Zeitraums (Abschnitt 3.7).
@@ -47,7 +45,7 @@ public partial class DayViewModel : ObservableObject
         IssueTotals.Clear();
         foreach (var total in issueTotals)
         {
-            IssueTotals.Add(IssueTotalRow.From(total, _baseUrl, maxTotal, DurationFormat));
+            IssueTotals.Add(IssueTotalRow.From(total, maxTotal, DurationFormat));
         }
 
         TotalText = DurationFormatter.Format(summary.Total, DurationFormat);

@@ -27,15 +27,20 @@ public static class WorklogAggregator
 
     public static IReadOnlyList<IssueTotal> BuildIssueTotals(IEnumerable<WorklogEntry> entries)
     {
+        // Gruppiert wird nach Quelle UND Schlüssel: Ein Jira-Ticket und ein Asana-Projekt können
+        // denselben Text tragen, ihre Zeiten gehören aber nicht in dieselbe Zeile.
         return entries
-            .GroupBy(entry => entry.IssueKey, StringComparer.Ordinal)
+            .GroupBy(entry => (entry.Source, entry.ItemKey))
             .Select(group => new IssueTotal(
-                group.Key,
-                group.First().IssueSummary,
+                group.Key.Source,
+                group.Key.ItemKey,
+                group.First().ItemSummary,
                 Sum(group.Select(entry => entry.Duration)),
-                group.Count()))
+                group.Count(),
+                group.First().ItemUrl))
             .OrderByDescending(total => total.Total)
-            .ThenBy(total => total.IssueKey, StringComparer.Ordinal)
+            .ThenBy(total => total.ItemKey, StringComparer.Ordinal)
+            .ThenBy(total => total.Source)
             .ToList();
     }
 

@@ -6,9 +6,10 @@ using Hora.Core.Worklogs;
 
 namespace Hora.Core.Tests.Worklogs;
 
-public class WorklogServiceTests
+public class JiraWorklogServiceTests
 {
     private const string Me = "me-account";
+    private const string BaseUrl = "https://example.atlassian.net";
     private static readonly TimeZoneInfo Berlin = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
     private static readonly DateOnly Monday = new(2026, 9, 14);
     private static readonly DateOnly Sunday = new(2026, 9, 20);
@@ -20,7 +21,7 @@ public class WorklogServiceTests
         public List<JiraIssue> Issues { get; } = new();
         public Dictionary<string, List<JiraWorklog>> WorklogsByIssue { get; } = new();
         public Dictionary<string, Exception> FailuresByIssue { get; } = new();
-        public List<(string IssueKey, DateTimeOffset After, DateTimeOffset Before)> WorklogRequests { get; } = new();
+        public List<(string JiraIssueKey, DateTimeOffset After, DateTimeOffset Before)> WorklogRequests { get; } = new();
         public int MaxObservedParallelism { get; private set; }
 
         public Task<JiraUser> GetMyselfAsync(CancellationToken cancellationToken) =>
@@ -81,11 +82,11 @@ public class WorklogServiceTests
             }),
     };
 
-    private static (WorklogService service, FakeJiraClient jira, RecordingLogger logger) Create()
+    private static (JiraWorklogService service, FakeJiraClient jira, RecordingLogger logger) Create()
     {
         var jira = new FakeJiraClient();
         var logger = new RecordingLogger();
-        return (new WorklogService(jira, Me, Berlin, logger), jira, logger);
+        return (new JiraWorklogService(jira, Me, BaseUrl, Berlin, logger), jira, logger);
     }
 
     [Fact]
@@ -147,8 +148,8 @@ public class WorklogServiceTests
         var result = await service.GetEntriesAsync(Monday, Sunday, CancellationToken.None);
 
         var entry = Assert.Single(result.Entries);
-        Assert.Equal("ABC-7", entry.IssueKey);
-        Assert.Equal("Login-Maske bauen", entry.IssueSummary);
+        Assert.Equal("ABC-7", entry.ItemKey);
+        Assert.Equal("Login-Maske bauen", entry.ItemSummary);
         Assert.Equal(TimeSpan.FromMinutes(90), entry.Duration);
         Assert.Equal("Review mit Team", entry.Comment);
         Assert.Equal(new DateTimeOffset(2026, 9, 16, 9, 0, 0, TimeSpan.FromHours(2)), entry.Started);
@@ -185,7 +186,7 @@ public class WorklogServiceTests
         var result = await service.GetEntriesAsync(Monday, Sunday, CancellationToken.None);
 
         var entry = Assert.Single(result.Entries);
-        Assert.Equal("ABC-1", entry.IssueKey);
+        Assert.Equal("ABC-1", entry.ItemKey);
         Assert.Equal(new[] { "ABC-2" }, result.FailedIssueKeys);
         Assert.Single(logger.Errors);
     }
@@ -226,7 +227,7 @@ public class WorklogServiceTests
 
         var result = await service.GetEntriesAsync(Monday, Sunday, CancellationToken.None);
 
-        Assert.Equal(new[] { "ABC-2", "ABC-1" }, result.Entries.Select(entry => entry.IssueKey));
+        Assert.Equal(new[] { "ABC-2", "ABC-1" }, result.Entries.Select(entry => entry.ItemKey));
     }
 
     [Fact]
@@ -247,7 +248,7 @@ public class WorklogServiceTests
 
             var result = await service.GetEntriesAsync(Monday, Sunday, CancellationToken.None);
 
-            Assert.Equal(new[] { "AAA-1", "ZZZ-9" }, result.Entries.Select(entry => entry.IssueKey));
+            Assert.Equal(new[] { "AAA-1", "ZZZ-9" }, result.Entries.Select(entry => entry.ItemKey));
         }
     }
 

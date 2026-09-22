@@ -677,15 +677,15 @@
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" MinWidth="104" Margin="0,0,10,0">
                 <Border Style="{StaticResource TicketDot}" Margin="0,0,8,0"/>
-                <Button Content="{Binding IssueKey}"
+                <Button Content="{Binding ItemKey}"
                         Style="{StaticResource TicketKeyLink}"
                         Command="{Binding DataContext.OpenIssueCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                        CommandParameter="{Binding IssueUrl}"/>
+                        CommandParameter="{Binding ItemUrl}"/>
             </StackPanel>
             <!-- Langer Titel: abgeschnitten, voller Text als Mauszeiger-Hinweis. -->
             <TextBlock Grid.Column="1"
-                       Text="{Binding IssueSummary}"
-                       ToolTip="{Binding IssueSummary}"
+                       Text="{Binding ItemSummary}"
+                       ToolTip="{Binding ItemSummary}"
                        TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource InkSoftBrush}"
                        VerticalAlignment="Center"/>

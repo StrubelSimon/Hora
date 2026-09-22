@@ -116,7 +116,7 @@ public partial class MainViewModel : ObservableObject
         var zone = TimeZoneInfo.Local;
         LogTimeZoneMismatch(user.TimeZone, zone);
 
-        var worklogs = new WorklogService(client, user.AccountId, zone, _logger);
+        var worklogs = new JiraWorklogService(client, user.AccountId, baseUrl, zone, _logger);
         var settings = _settingsStore.Load();
         // Diese eine Instanz lebt, solange die Übersicht lebt; der Schrittschalter der Profilseite
         // ändert genau sie, damit Kennzahlen und Balken sofort mit den neuen Sollstunden rechnen.
@@ -124,7 +124,6 @@ public partial class MainViewModel : ObservableObject
         var overview = new OverviewViewModel(
             worklogs,
             user,
-            baseUrl,
             zone,
             _logger,
             _today,

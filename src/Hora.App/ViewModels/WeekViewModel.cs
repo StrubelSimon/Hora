@@ -8,12 +8,10 @@ namespace Hora.App.ViewModels;
 
 public partial class WeekViewModel : ObservableObject
 {
-    private readonly string _baseUrl;
     private readonly WorkSchedule _schedule;
 
-    public WeekViewModel(string baseUrl, WorkSchedule schedule, DurationFormat durationFormat = DurationFormat.HoursMinutes)
+    public WeekViewModel(WorkSchedule schedule, DurationFormat durationFormat = DurationFormat.HoursMinutes)
     {
-        _baseUrl = baseUrl;
         _schedule = schedule;
         DurationFormat = durationFormat;
     }
@@ -58,7 +56,7 @@ public partial class WeekViewModel : ObservableObject
         IssueTotals.Clear();
         foreach (var total in issueTotals)
         {
-            IssueTotals.Add(IssueTotalRow.From(total, _baseUrl, maxIssueTotal, DurationFormat));
+            IssueTotals.Add(IssueTotalRow.From(total, maxIssueTotal, DurationFormat));
         }
 
         TotalText = DurationFormatter.Format(summary.Total, DurationFormat);

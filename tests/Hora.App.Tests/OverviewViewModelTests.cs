@@ -11,12 +11,14 @@ public class OverviewViewModelTests
     private static readonly TimeZoneInfo Berlin = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
     private static readonly DateOnly Today = new(2026, 9, 16); // Mittwoch, KW 38
 
-    private static WorklogEntry Entry(int day, int hour, int durationMinutes, string issueKey = "ABC-1") =>
-        new(issueKey, "Titel", new DateTimeOffset(2026, 9, day, hour, 0, 0, TimeSpan.FromHours(2)),
-            TimeSpan.FromMinutes(durationMinutes), string.Empty);
+    private const string BaseUrl = "https://example.atlassian.net";
+
+    private static WorklogEntry Entry(int day, int hour, int durationMinutes, string itemKey = "ABC-1") =>
+        WorklogEntry.Jira(itemKey, "Titel", new DateTimeOffset(2026, 9, day, hour, 0, 0, TimeSpan.FromHours(2)),
+            TimeSpan.FromMinutes(durationMinutes), string.Empty, BaseUrl);
 
     private static OverviewViewModel CreateViewModel(FakeWorklogService service) =>
-        new(service, new JiraUser { AccountId = "me", DisplayName = "Simon" }, "https://example.atlassian.net",
+        new(service, new JiraUser { AccountId = "me", DisplayName = "Simon" },
             Berlin, new NullLogger(), () => Today);
 
     [Fact]
@@ -160,7 +162,7 @@ public class OverviewViewModelTests
         Assert.Equal(2, vm.Day.Rows.Count);
         Assert.Equal("09:00", vm.Day.Rows[0].StartText);
         Assert.Equal("1h", vm.Day.Rows[0].DurationText);
-        Assert.Equal("https://example.atlassian.net/browse/ABC-1", vm.Day.Rows[0].IssueUrl);
+        Assert.Equal("https://example.atlassian.net/browse/ABC-1", vm.Day.Rows[0].ItemUrl);
         Assert.False(vm.Day.IsEmpty);
         Assert.Equal(2, vm.Day.IssueTotals.Count);
 
@@ -173,7 +175,7 @@ public class OverviewViewModelTests
         Assert.Equal("–", vm.Week.Days[4].TotalText); // Fr 18.09., ohne Buchung
         Assert.False(vm.Week.IsEmpty);
         Assert.Equal(2, vm.Week.IssueTotals.Count);
-        Assert.Equal("ABC-1", vm.Week.IssueTotals[0].IssueKey);
+        Assert.Equal("ABC-1", vm.Week.IssueTotals[0].ItemKey);
     }
 
     [Fact]

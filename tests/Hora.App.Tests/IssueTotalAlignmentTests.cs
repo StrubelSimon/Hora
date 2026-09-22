@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Hora.App.Tests.TestDoubles;
 using Hora.App.ViewModels;
+using Hora.Core.Worklogs;
 
 namespace Hora.App.Tests;
 
@@ -21,10 +22,10 @@ public class IssueTotalAlignmentTests
     private static readonly IssueTotalRow[] MixedRows =
     [
         // Bewusst sehr unterschiedlich lang: kurzer gegen langen Schlüssel, „3h“ gegen „12h 45m“.
-        new("AB-1", "Kurz", "3h", 1, "https://example.atlassian.net/browse/AB-1", 0.25),
-        new("SYNSYN-987654", "Ein deutlich längerer Tickettitel als nebenan", "12h 45m", 4, "https://example.atlassian.net/browse/SYNSYN-987654", 1.0),
-        new("MAS-143", "Mittel", "4h", 2, "https://example.atlassian.net/browse/MAS-143", 0.4),
-        new("SYN-2712", "Noch ein Titel", "6h 30m", 3, "https://example.atlassian.net/browse/SYN-2712", 0.6),
+        new(WorklogSource.Jira, "AB-1", "Kurz", "3h", 1, "https://example.atlassian.net/browse/AB-1", 0.25),
+        new(WorklogSource.Jira, "SYNSYN-987654", "Ein deutlich längerer Tickettitel als nebenan", "12h 45m", 4, "https://example.atlassian.net/browse/SYNSYN-987654", 1.0),
+        new(WorklogSource.Jira, "MAS-143", "Mittel", "4h", 2, "https://example.atlassian.net/browse/MAS-143", 0.4),
+        new(WorklogSource.Jira, "SYN-2712", "Noch ein Titel", "6h 30m", 3, "https://example.atlassian.net/browse/SYN-2712", 0.6),
     ];
 
     [StaFact]

@@ -6,21 +6,41 @@ namespace Hora.App.ViewModels;
 
 /// <summary>Eine Zeile der Tagesansicht mit fertig formatierten Texten.</summary>
 public sealed record WorklogRow(
-    string IssueKey,
-    string IssueSummary,
+    WorklogSource Source,
+    string ItemKey,
+    string ItemSummary,
     string Comment,
     string StartText,
     string DurationText,
-    string IssueUrl,
+    string ItemUrl,
     string TimeRangeText,
-    bool HasComment)
+    bool HasComment,
+    bool HasStartTime)
 {
     public static WorklogRow From(
         WorklogEntry entry,
         TimeZoneInfo zone,
-        string baseUrl,
         DurationFormat format = DurationFormat.HoursMinutes)
     {
+        var durationText = DurationFormatter.Format(entry.Duration, format);
+
+        // Ohne Startzeit (Asana) gibt es keine Zeitspanne zu zeigen. Statt eine zu erfinden, tritt
+        // die Dauer an ihre Stelle; die Ansicht blendet die Startspalte über HasStartTime aus.
+        if (!entry.HasStartTime)
+        {
+            return new(
+                entry.Source,
+                entry.ItemKey,
+                entry.ItemSummary,
+                entry.Comment,
+                string.Empty,
+                durationText,
+                entry.ItemUrl,
+                durationText,
+                !string.IsNullOrEmpty(entry.Comment),
+                HasStartTime: false);
+        }
+
         var localStart = TimeZoneInfo.ConvertTime(entry.Started, zone);
         // Die Endzeit wird aus dem Zeitpunkt (Start + Dauer) in die Zielzone umgerechnet, nicht im
         // Offset des Startzeitpunkts addiert: An einem Zeitumstellungstag wechselt der Offset
@@ -31,26 +51,27 @@ public sealed record WorklogRow(
         var endText = localEnd.ToString("HH:mm", CultureInfo.InvariantCulture);
 
         return new(
-            entry.IssueKey,
-            entry.IssueSummary,
+            entry.Source,
+            entry.ItemKey,
+            entry.ItemSummary,
             entry.Comment,
             startText,
-            DurationFormatter.Format(entry.Duration, format),
-            IssueUrlFor(baseUrl, entry.IssueKey),
+            durationText,
+            entry.ItemUrl,
             $"{startText} – {endText}",
-            !string.IsNullOrEmpty(entry.Comment));
+            !string.IsNullOrEmpty(entry.Comment),
+            HasStartTime: true);
     }
-
-    public static string IssueUrlFor(string baseUrl, string issueKey) => $"{baseUrl.TrimEnd('/')}/browse/{issueKey}";
 }
 
 /// <summary>Eine Zeile im Abschnitt „Pro Ticket“.</summary>
 public sealed record IssueTotalRow(
-    string IssueKey,
-    string IssueSummary,
+    WorklogSource Source,
+    string ItemKey,
+    string ItemSummary,
     string TotalText,
     int EntryCount,
-    string IssueUrl,
+    string ItemUrl,
     double BarRatio)
 {
     /// <summary>
@@ -60,14 +81,14 @@ public sealed record IssueTotalRow(
     /// </summary>
     public static IssueTotalRow From(
         IssueTotal total,
-        string baseUrl,
         TimeSpan maxTotal,
         DurationFormat format = DurationFormat.HoursMinutes) => new(
-        total.IssueKey,
-        total.IssueSummary,
+        total.Source,
+        total.ItemKey,
+        total.ItemSummary,
         DurationFormatter.Format(total.Total, format),
         total.EntryCount,
-        WorklogRow.IssueUrlFor(baseUrl, total.IssueKey),
+        total.ItemUrl,
         BarRatioFor(total.Total, maxTotal));
 
     /// <summary>Größte Gesamtdauer einer Menge von Ticketsummen; leere Menge ergibt null.</summary>

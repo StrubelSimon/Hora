@@ -11,8 +11,8 @@ public class IssueTotalRowTests
 {
     private const string BaseUrl = "https://example.atlassian.net";
 
-    private static IssueTotal Total(string issueKey, TimeSpan duration) =>
-        new(issueKey, $"Titel {issueKey}", duration, 1);
+    private static IssueTotal Total(string itemKey, TimeSpan duration) =>
+        new(WorklogSource.Jira, itemKey, $"Titel {itemKey}", duration, 1, $"{BaseUrl}/browse/{itemKey}");
 
     [Fact]
     public void Largest_entry_fills_the_bar_completely()
@@ -24,7 +24,7 @@ public class IssueTotalRowTests
         };
         var maxTotal = IssueTotalRow.MaxTotalOf(totals);
 
-        var row = IssueTotalRow.From(totals[0], BaseUrl, maxTotal);
+        var row = IssueTotalRow.From(totals[0], maxTotal);
 
         Assert.Equal(1.0, row.BarRatio, 6);
     }
@@ -39,7 +39,7 @@ public class IssueTotalRowTests
         };
         var maxTotal = IssueTotalRow.MaxTotalOf(totals);
 
-        var row = IssueTotalRow.From(totals[1], BaseUrl, maxTotal);
+        var row = IssueTotalRow.From(totals[1], maxTotal);
 
         Assert.Equal(0.5, row.BarRatio, 6);
     }
@@ -62,7 +62,7 @@ public class IssueTotalRowTests
         };
         var maxTotal = IssueTotalRow.MaxTotalOf(totals);
 
-        var rows = totals.Select(total => IssueTotalRow.From(total, BaseUrl, maxTotal)).ToList();
+        var rows = totals.Select(total => IssueTotalRow.From(total, maxTotal)).ToList();
 
         Assert.Equal(TimeSpan.Zero, maxTotal);
         Assert.All(rows, row => Assert.Equal(0.0, row.BarRatio, 6));
@@ -79,7 +79,7 @@ public class IssueTotalRowTests
         };
         var maxTotal = IssueTotalRow.MaxTotalOf(totals);
 
-        var rows = totals.Select(total => IssueTotalRow.From(total, BaseUrl, maxTotal)).ToList();
+        var rows = totals.Select(total => IssueTotalRow.From(total, maxTotal)).ToList();
 
         Assert.All(rows, row => Assert.InRange(row.BarRatio, 0.0, 1.0));
         Assert.Equal(0.1875, rows[1].BarRatio, 6);
@@ -89,7 +89,7 @@ public class IssueTotalRowTests
     [Fact]
     public void Showing_a_day_without_issue_totals_does_not_throw()
     {
-        var viewModel = new DayViewModel(TimeZoneInfo.Utc, BaseUrl);
+        var viewModel = new DayViewModel(TimeZoneInfo.Utc);
         var day = new DaySummary(new DateOnly(2026, 9, 17), Array.Empty<WorklogEntry>(), TimeSpan.Zero);
 
         viewModel.Show(day, Array.Empty<IssueTotal>());

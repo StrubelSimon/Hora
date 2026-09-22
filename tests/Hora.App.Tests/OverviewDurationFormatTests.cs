@@ -16,15 +16,17 @@ public class OverviewDurationFormatTests
     private static readonly TimeZoneInfo Berlin = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
     private static readonly DateOnly Today = new(2026, 9, 16); // Mittwoch, KW 38
 
-    private static WorklogEntry Entry(int day, int hour, int durationMinutes, string issueKey = "ABC-1") =>
-        new(issueKey, "Titel", new DateTimeOffset(2026, 9, day, hour, 0, 0, TimeSpan.FromHours(2)),
-            TimeSpan.FromMinutes(durationMinutes), string.Empty);
+    private const string BaseUrl = "https://example.atlassian.net";
+
+    private static WorklogEntry Entry(int day, int hour, int durationMinutes, string itemKey = "ABC-1") =>
+        WorklogEntry.Jira(itemKey, "Titel", new DateTimeOffset(2026, 9, day, hour, 0, 0, TimeSpan.FromHours(2)),
+            TimeSpan.FromMinutes(durationMinutes), string.Empty, BaseUrl);
 
     private static OverviewViewModel CreateViewModel(
         FakeWorklogService service,
         ViewMode initialMode = ViewMode.Day,
         DurationFormat durationFormat = DurationFormat.HoursMinutes) =>
-        new(service, new JiraUser { AccountId = "me", DisplayName = "Simon" }, "https://example.atlassian.net",
+        new(service, new JiraUser { AccountId = "me", DisplayName = "Simon" },
             Berlin, new NullLogger(), () => Today, WorkSchedule.Default(), initialMode, durationFormat);
 
     private static FakeWorklogService ServiceWithEntries() => new()

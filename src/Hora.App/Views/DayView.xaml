@@ -45,17 +45,17 @@
                                              WorklogRow.TimeRangeText bleibt berechnet, falls sie zurückkehrt. -->
                                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
                                             <Border Style="{StaticResource TicketDot}" Margin="0,0,8,0"/>
-                                            <Button Content="{Binding IssueKey}"
+                                            <Button Content="{Binding ItemKey}"
                                                     Style="{StaticResource TicketKeyLink}"
                                                     Command="{Binding DataContext.OpenIssueCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                                    CommandParameter="{Binding IssueUrl}"/>
+                                                    CommandParameter="{Binding ItemUrl}"/>
                                         </StackPanel>
 
                                         <!-- Titel und, falls vorhanden, der Kommentar als graue Unterzeile.
                                              Beide einzeilig abgeschnitten, voller Text als Mauszeiger-Hinweis. -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                            <TextBlock Text="{Binding IssueSummary}"
-                                                       ToolTip="{Binding IssueSummary}"
+                                            <TextBlock Text="{Binding ItemSummary}"
+                                                       ToolTip="{Binding ItemSummary}"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Text="{Binding Comment}"
                                                        ToolTip="{Binding Comment}"

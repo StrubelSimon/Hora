@@ -8,20 +8,23 @@ namespace Hora.Core.Worklogs;
 /// <summary>
 /// Sucht per JQL die Tickets mit eigenen Buchungen im Zeitraum, lädt deren Worklogs parallel
 /// (höchstens vier gleichzeitig) und filtert auf den eigenen Account und die lokalen Tagesgrenzen.
+/// Der Jira-Anbieter hinter <see cref="IWorklogService"/>.
 /// </summary>
-public sealed class WorklogService : IWorklogService
+public sealed class JiraWorklogService : IWorklogService
 {
     private const int MaxParallelRequests = 4;
 
     private readonly IJiraClient _jira;
     private readonly string _accountId;
+    private readonly string _baseUrl;
     private readonly TimeZoneInfo _zone;
     private readonly IAppLogger _logger;
 
-    public WorklogService(IJiraClient jira, string accountId, TimeZoneInfo zone, IAppLogger logger)
+    public JiraWorklogService(IJiraClient jira, string accountId, string baseUrl, TimeZoneInfo zone, IAppLogger logger)
     {
         _jira = jira;
         _accountId = accountId;
+        _baseUrl = baseUrl;
         _zone = zone;
         _logger = logger;
     }
@@ -64,12 +67,13 @@ public sealed class WorklogService : IWorklogService
                         continue;
                     }
 
-                    entries.Add(new WorklogEntry(
+                    entries.Add(WorklogEntry.Jira(
                         issue.Key,
                         issue.Fields.Summary,
                         started,
                         TimeSpan.FromSeconds(worklog.TimeSpentSeconds),
-                        AdfTextExtractor.Extract(worklog.Comment)));
+                        AdfTextExtractor.Extract(worklog.Comment),
+                        _baseUrl));
                 }
             }
             catch (JiraAuthenticationException)
@@ -109,7 +113,7 @@ public sealed class WorklogService : IWorklogService
         return new WorklogFetchResult(
             entries
                 .OrderBy(entry => entry.Started)
-                .ThenBy(entry => entry.IssueKey, StringComparer.Ordinal)
+                .ThenBy(entry => entry.ItemKey, StringComparer.Ordinal)
                 .ToList(),
             failedIssueKeys.OrderBy(key => key, StringComparer.Ordinal).ToList());
     }

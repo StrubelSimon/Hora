@@ -1,0 +1,1160 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
+
+    <!--
+        Keine Farbwerte in dieser Datei. Alle Farben kommen ausschließlich aus Tokens.Light.xaml
+        beziehungsweise Tokens.Dark.xaml; der ThemeManager fügt das passende Wörterbuch zur
+        Laufzeit an Position 0 der MergedDictionaries von App.xaml ein. Deshalb verweisen alle
+        Farbverweise hier auf DynamicResource, niemals auf StaticResource – sonst schaltet der
+        Dunkelmodus nicht um. Verweise auf andere Stile (BasedOn) und die Schriftfamilie sind keine
+        Farbwerte und bleiben StaticResource.
+    -->
+
+    <FontFamily x:Key="AppFont">pack://application:,,,/Hora;component/Styles/Fonts/#Montserrat</FontFamily>
+
+    <!-- Grundstil für Fließtext, Spec 2.3 "Tabelleninhalt". -->
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+    </Style>
+
+    <!--
+        Mauszeiger-Hinweise. Ohne diesen Stil behalten sie den hellen Windows-Standardgrund, während
+        ihr Text dem Grundstil darüber folgt und im Dunkelmodus hell wird – hell auf hell, der
+        Hinweis war dort ein leeres weißes Kästchen. Der eigene Rahmen bindet Grund, Linie und Text
+        an dieselben Token wie die Karten der App, sodass beide Modi stimmen.
+
+        Das Standardtemplate zeichnet seinen Grund teilweise selbst; deshalb ist es hier ersetzt und
+        nicht bloß Background gesetzt.
+    -->
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="HasDropShadow" Value="False"/>
+        <Setter Property="MaxWidth" Value="420"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Fensterleiste, Spec 3.1 ===================== -->
+
+    <!--
+        Quadratische Fensterknöpfe (Minimieren, Maximieren/Wiederherstellen, Schließen). Die
+        Schließen-Schaltfläche bekommt über Tag="Close" (in MainWindow.xaml gesetzt) zusätzlich
+        einen roten Auslöser. Der Brief nennt dafür wörtlich #E81123 (Windows-Standardrot); das
+        wäre ein Farbwert außerhalb der Token-Dateien und verstößt gegen die wichtigste Regel dieses
+        Tasks. Verwendet wird stattdessen NegativeBrush – bereits ein Token aus Spec 2.1/2.2 mit
+        passender "Gefahr/negativ"-Bedeutung. Liefert der Auftraggeber später Markenfarben, bleibt
+        auch dieser Knopf über die zwei Token-Dateien austauschbar.
+    -->
+    <Style x:Key="TitleBarButton" TargetType="Button">
+        <Setter Property="Width" Value="46"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+        <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{TemplateBinding Background}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="Tag" Value="Close"/>
+                            </MultiTrigger.Conditions>
+                            <MultiTrigger.Setters>
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource NegativeBrush}"/>
+                                <!-- Weiß auf dem roten Auslöser kommt aus dem Token OnAccentBrush,
+                                     nicht als fester Farbwert: NegativeBrush bleibt in beiden Modi
+                                     mitteldunkel, das Token trägt deshalb in beiden Token-Dateien
+                                     denselben weißen Wert. -->
+                                <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
+                            </MultiTrigger.Setters>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Pille "Dunkel"/"Hell" in der Fensterleiste, mit Rahmen. -->
+    <Style x:Key="TitleBarPill" TargetType="Button">
+        <Setter Property="Padding" Value="14,4"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="Transparent"
+                            BorderBrush="{DynamicResource HairlineBrush}"
+                            BorderThickness="1"
+                            CornerRadius="13"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Kopfzeile, Spec 3.2 ===================== -->
+
+    <!-- Pfeile ◄ ► zum Blättern. -->
+    <Style x:Key="NavArrowButton" TargetType="Button">
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="8">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Segmentschalter "Monat | Woche | Tag" als RadioButton-Stil. Aktiv: InkBrush als
+        Hintergrund, weiße Schrift (Vorgabe aus dem Brief). Inaktiv: durchsichtig, InkSoftBrush.
+    -->
+    <Style x:Key="SegmentButton" TargetType="RadioButton">
+        <Setter Property="Padding" Value="14,6"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkSoftBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <!--
+                            Eigener TextBlock statt ContentPresenter: Der ContentPresenter erzeugt für
+                            Zeichenketten intern einen TextBlock, auf den der implizite TextBlock-Stil
+                            dieser Datei greift (Foreground = InkBrush). Ein Stil-Setter schlägt den
+                            geerbten Wert – das aktive Segment stünde sonst dunkel auf dunklem Grund.
+                            Als lokal gesetzter Wert gewinnt die TemplateBinding-Farbe dagegen.
+                        -->
+                        <TextBlock Text="{TemplateBinding Content}"
+                                   FontFamily="{TemplateBinding FontFamily}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource InkBrush}"/>
+                            <!--
+                                Spec 3.2 nennt für das aktive Segment "weiße Schrift". Ein fest weißer Wert
+                                wäre im Dunkelmodus unlesbar, weil InkBrush dort fast weiß ist. SurfaceBrush
+                                ist im hellen Modus genau Weiß (#FFFFFF) und im dunklen der dunkle Kartenton
+                                – die Vorgabe bleibt erfüllt, und der Text bleibt in beiden Modi lesbar.
+                            -->
+                            <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsChecked" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <MultiTrigger.Setters>
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                            </MultiTrigger.Setters>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Zurückhaltende Schaltfläche ohne Füllung, z. B. "Heute". -->
+    <Style x:Key="GhostButton" TargetType="Button">
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="Transparent"
+                            BorderBrush="{DynamicResource HairlineBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Avatar-Kreis mit Initialen, Spec 2.4 "Avatar … rund". -->
+    <Style x:Key="AvatarCircle" TargetType="Border">
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+
+    <!-- ===================== Flächen ===================== -->
+
+    <!-- Karte, Spec 2.4: Eckenradius 12, 1 Bildpunkt Rahmen HairlineBrush. -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12"/>
+    </Style>
+
+    <!-- Kennzahlenkarte, Spec 3.3. -->
+    <Style x:Key="StatsCard" TargetType="Border" BasedOn="{StaticResource Card}">
+        <Setter Property="Background" Value="{DynamicResource StatsCardBrush}"/>
+    </Style>
+
+    <!-- ===================== Textrollen, Spec 2.3 ===================== -->
+
+    <!--
+        Kennzahl-Beschriftung / Abschnittsbeschriftung: 10, SemiBold, Großbuchstaben, Laufweite 0.8.
+        WPF-TextBlock kennt weder eine Laufweiten- noch eine automatische Großbuchstaben-Eigenschaft
+        (anders als z. B. UWP); Großschreibung und Zeichenabstand müssen daher aus dem gebundenen Text
+        selbst kommen oder – in einer späteren Ansicht-Aufgabe – über einen Converter. Hier wird die
+        Schriftgröße, der Schnitt und die Farbe gesetzt, die mit WPF-Bordmitteln möglich sind.
+    -->
+    <Style x:Key="StatLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+    </Style>
+
+    <!-- Kennzahl selbst: 24, Bold. Farbe folgt aus dem Grundstil (InkBrush), Ausnahmen (negative
+         Differenz in NegativeBrush) setzt die jeweilige Ansicht direkt. -->
+    <Style x:Key="StatValue" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+
+    <!-- Abschnittsbeschriftung "PRO TICKET" – dieselbe Rolle wie StatLabel. -->
+    <Style x:Key="SectionLabel" TargetType="TextBlock" BasedOn="{StaticResource StatLabel}"/>
+
+    <!-- Legacy-Name für dieselbe Rolle: DayView.xaml und WeekView.xaml (unverändert) verwenden noch
+         "SectionHeader" für die Überschrift über "Pro Ticket". -->
+    <Style x:Key="SectionHeader" TargetType="TextBlock" BasedOn="{StaticResource SectionLabel}">
+        <Setter Property="Margin" Value="0,16,0,8"/>
+    </Style>
+
+    <!-- Leerer-Zustand-Hinweis, z. B. "Keine Buchungen an diesem Tag." Spec 2.1: MutedBrush deckt
+         ausdrücklich "leere Tage" ab. -->
+    <Style x:Key="EmptyHint" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="24"/>
+    </Style>
+
+    <!-- Anklickbarer Ticket-Schlüssel, Spec 2.3: 13, SemiBold, in Ticketfarbe. Die Farbe kommt pro
+         Ticket aus einer Bindung an der Verwendungsstelle, nicht aus dieser Datei. -->
+    <Style x:Key="TicketLink" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <TextBlock x:Name="LinkText"
+                               Text="{TemplateBinding Content}"
+                               FontFamily="{TemplateBinding FontFamily}"
+                               FontSize="{TemplateBinding FontSize}"
+                               FontWeight="{TemplateBinding FontWeight}"
+                               Foreground="{TemplateBinding Foreground}"
+                               VerticalAlignment="Center"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="LinkText" Property="TextDecorations" Value="Underline"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Fortschrittsbalken, Spec 2.4: Höhe 6, Radius 3 ===================== -->
+
+    <Style x:Key="ProgressTrack" TargetType="Border">
+        <Setter Property="Height" Value="6"/>
+        <Setter Property="CornerRadius" Value="3"/>
+        <Setter Property="Background" Value="{DynamicResource AccentMutedBrush}"/>
+    </Style>
+
+    <Style x:Key="ProgressFill" TargetType="Border">
+        <Setter Property="Height" Value="6"/>
+        <Setter Property="CornerRadius" Value="3"/>
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+
+    <!-- ===================== Eingabefelder (Login) ===================== -->
+
+    <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="Foreground" Value="{DynamicResource InkSoftBrush}"/>
+        <Setter Property="Margin" Value="0,12,0,4"/>
+    </Style>
+
+    <Style x:Key="FieldTextBox" TargetType="TextBox">
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style x:Key="FieldPasswordBox" TargetType="PasswordBox">
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- ===================== Schaltflächen ===================== -->
+
+    <!-- Primäre Schaltfläche (Login-Button), Spec 2.4: Eckenradius 8. -->
+    <Style x:Key="PrimaryButton" TargetType="Button">
+        <Setter Property="Padding" Value="12,8"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <!-- Weiß auf AccentBrush über das Token OnAccentBrush, siehe Tokens.Light.xaml. -->
+        <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{DynamicResource AccentBrush}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.88"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Textlink, z. B. "API-Token erstellen". Auch von DayView.xaml/WeekView.xaml für
+         Ticket-Schlüssel verwendet (dort ohne eigene Farbbindung – Ticketfarben pro Zeile
+         sind Gegenstand eines späteren Ansicht-Tasks). -->
+    <Style x:Key="LinkButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <TextBlock x:Name="LinkText"
+                               Text="{TemplateBinding Content}"
+                               FontFamily="{TemplateBinding FontFamily}"
+                               FontSize="{TemplateBinding FontSize}"
+                               Foreground="{TemplateBinding Foreground}"
+                               VerticalAlignment="Center"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="LinkText" Property="TextDecorations" Value="Underline"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Altbestand-Kompatibilität: OverviewView.xaml wird von diesem Task nicht angefasst (nur
+        LoginView.xaml darf laut Auftrag angepasst werden) und verwendet noch diese drei Stilnamen.
+        Neu aufgebaut mit denselben Tokens wie oben, damit die Ansicht weiterhin lädt.
+    -->
+    <Style x:Key="BaseButton" TargetType="ButtonBase">
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ButtonBase">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ToggleChoiceButton" TargetType="RadioButton">
+        <Setter Property="Padding" Value="14,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Chrome"
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource HairlineBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource InkBrush}"/>
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource InkBrush}"/>
+                            <!-- Hintergrund ist InkBrush und dreht sich zwischen den Modi um; ein fest
+                                 weißer Vordergrund wäre im Dunkelmodus unlesbar. SurfaceBrush ist der
+                                 gegenläufige Ton (hell #FFFFFF, dunkel Kartenton) – dieselbe Lösung wie
+                                 beim aktiven Segment des SegmentButton weiter oben. -->
+                            <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsChecked" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <MultiTrigger.Setters>
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                            </MultiTrigger.Setters>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ErrorBanner" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource NegativeBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="16,10"/>
+        <Setter Property="Margin" Value="24,0,24,12"/>
+        <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+
+    <Style x:Key="WarningBanner" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource WarningTextBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="16,10"/>
+        <Setter Property="Margin" Value="24,0,24,12"/>
+        <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+
+    <!-- DayView.xaml (unverändert) verwendet diesen Stil für die Buchungstabelle. -->
+    <Style x:Key="ReadOnlyGrid" TargetType="DataGrid">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="RowHeight" Value="44"/>
+        <Setter Property="ColumnHeaderHeight" Value="34"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="RowBackground" Value="Transparent"/>
+        <Setter Property="AlternatingRowBackground" Value="Transparent"/>
+    </Style>
+
+    <!-- WeekView.xaml (unverändert) verwendet diesen Stil für die sieben Tageszeilen. -->
+    <Style x:Key="WeekDayRowButton" TargetType="Button">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Padding" Value="16,10"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource HairlineBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource AccentMutedBrush}"/>
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============== Bausteine der vier Ansichten, Spec 3.2 bis 3.7 (Task R4) ============== -->
+
+    <!--
+        Fortschrittsbalken für eine Verhältniszahl zwischen 0 und 1 (PeriodStats.BarRatio,
+        WeekDayRow.BarRatio, MonthCellRow.BarRatio). Umgesetzt als ProgressBar mit eigener Vorlage:
+        WPF übersetzt eine Zahl ohne Wertwandler nicht in eine Breite, eine ProgressBar rechnet
+        genau das von Haus aus. Minimum und Maximum stehen deshalb fest auf 0 und 1, gebunden wird
+        ausschließlich Value. Spec 2.4: Höhe 6, Radius 3. Die leere Spur steht in HairlineBrush
+        (Spec 2.1 „leere Balkenspur“), die gefüllte in AccentMutedBrush.
+    -->
+    <Style x:Key="RatioBar" TargetType="ProgressBar">
+        <Setter Property="Height" Value="6"/>
+        <Setter Property="Minimum" Value="0"/>
+        <Setter Property="Maximum" Value="1"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsHitTestVisible" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Border x:Name="Track" Background="{DynamicResource AccentMutedBrush}" CornerRadius="3" ClipToBounds="True">
+                        <Grid>
+                            <!-- PART_Track misst die verfügbare Breite, PART_Indicator setzt die
+                                 ProgressBar selbst auf den passenden Anteil davon. Beide Namen sind
+                                 Pflicht, sonst bleibt der Balken leer. -->
+                            <Rectangle x:Name="PART_Track"/>
+                            <Border x:Name="PART_Indicator"
+                                    HorizontalAlignment="Left"
+                                    CornerRadius="3"
+                                    Background="{DynamicResource AccentBrush}"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Value" Value="0">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource HairlineBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Punkt vor einem Ticket-Schlüssel, Spec 2.5. Alle Tickets tragen dieselbe Farbe: die
+        Akzentfarbe der App, dieselbe wie Balken und Heute-Streifen.
+
+        Früher stand hier eine achtteilige Palette, in die ein FNV-Hash des Ticket-Schlüssels
+        (Klasse TicketPalette) abbildete. Das sollte ein Ticket über die Ansichten hinweg
+        wiedererkennbar machen, ergab in der Liste „Pro Ticket“ aber ein buntes Durcheinander aus
+        Gelb, Grau, Blau, Violett und Orange. Auf Wunsch entfernt – mit ihr der Farbindex der Zeilen
+        und die Farbtoken TicketColor0 bis TicketColor7.
+    -->
+    <Style x:Key="TicketDot" TargetType="Border">
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="Height" Value="8"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+
+    <!-- Anklickbarer Ticket-Schlüssel, Spec 2.3 und 3.4; Farbe wie der Punkt davor. -->
+    <Style x:Key="TicketKeyLink" TargetType="Button" BasedOn="{StaticResource TicketLink}">
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+
+    <!--
+        Ein Eintrag im Abschnitt „Pro Ticket“, Spec 3.7. Dieselbe Vorlage in Tages-, Wochen- und
+        Monatsansicht; der Datenkontext ist jeweils eine IssueTotalRow. Der Befehl wird über den
+        umgebenden UserControl geholt – das ist in allen drei Fällen die jeweilige Ansicht, deren
+        Datenkontext (DayViewModel, WeekViewModel, MonthViewModel) ein OpenIssueCommand trägt. Ein
+        Verweis auf den umgebenden ItemsControl wäre in der Monatsansicht falsch, weil dort ein
+        zweiter, geschachtelter ItemsControl dazwischenliegt.
+    -->
+    <DataTemplate x:Key="IssueTotalItemTemplate">
+        <Grid Margin="8,7">
+            <Grid.ColumnDefinitions>
+                <!--
+                    Die beiden Auto-Spalten tragen eine SharedSizeGroup, weil jede Zeile ein eigenes
+                    Grid ist: Ohne sie misst jede Zeile ihre Auto-Spalten für sich, und ein längerer
+                    Ticketschlüssel („SYN-2712“ gegen „MAS-143“) oder eine längere Dauer („6h 30m“
+                    gegen „3h“) verschiebt Anfang und Ende des Balkens gegenüber der Zeile darüber.
+                    Mit der Gruppe nimmt jede Spalte in allen Zeilen die Breite ihres breitesten
+                    Inhalts an, sodass Balken und Dauer bündig untereinander stehen. Den dazu nötigen
+                    Geltungsbereich setzen die drei Ansichten auf ihrem ItemsControl
+                    (Grid.IsSharedSizeScope); er umfasst beide Spalten des UniformGrid.
+                -->
+                <ColumnDefinition Width="Auto" SharedSizeGroup="IssueKeyColumn"/>
+                <!--
+                    Spalte 1 Titel, Spalte 2 Balken: Spec 3.7 verlangt den Balken „über die Restbreite“
+                    zwischen Ticket und Dauer. Weil die Umsetzung zusätzlich den Ticket-Titel zeigt,
+                    teilen sich beide den frei verfügbaren Rest im Verhältnis 3:2 – der Titel bleibt
+                    lesbar, der Balken bekommt den größeren Teil des Restes, den Spec 3.7 meint.
+                -->
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="IssueTotalColumn"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" MinWidth="104" Margin="0,0,10,0">
+                <Border Style="{StaticResource TicketDot}" Margin="0,0,8,0"/>
+                <Button Content="{Binding IssueKey}"
+                        Style="{StaticResource TicketKeyLink}"
+                        Command="{Binding DataContext.OpenIssueCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                        CommandParameter="{Binding IssueUrl}"/>
+            </StackPanel>
+            <!-- Langer Titel: abgeschnitten, voller Text als Mauszeiger-Hinweis. -->
+            <TextBlock Grid.Column="1"
+                       Text="{Binding IssueSummary}"
+                       ToolTip="{Binding IssueSummary}"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource InkSoftBrush}"
+                       VerticalAlignment="Center"/>
+            <!-- Balken je Ticket, Spec 3.7: bemessen am größten Eintrag des Zeitraums
+                 (IssueTotalRow.BarRatio). Gleicher Stil wie die Balken der Wochenansicht. -->
+            <ProgressBar Grid.Column="2"
+                         Style="{StaticResource RatioBar}"
+                         Value="{Binding BarRatio, Mode=OneWay}"
+                         VerticalAlignment="Center"
+                         MinWidth="40"
+                         Margin="4,0,0,0"/>
+            <!-- Rechtsbündig: Die Spalte ist so breit wie die längste Dauer des Zeitraums, kürzere
+                 Werte sollen an derselben rechten Kante enden statt an ihrer eigenen. -->
+            <TextBlock Grid.Column="3"
+                       Text="{Binding TotalText}"
+                       FontWeight="SemiBold"
+                       TextAlignment="Right"
+                       VerticalAlignment="Center"
+                       Margin="12,0,0,0"/>
+        </Grid>
+    </DataTemplate>
+
+    <!-- Avatar als Schaltfläche, Spec 3.2: Kreis in AccentBrush, Initialen in Weiß. -->
+    <Style x:Key="AvatarButton" TargetType="Button">
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{DynamicResource AccentBrush}" CornerRadius="16">
+                        <!-- Eigener TextBlock statt ContentPresenter, Begründung siehe SegmentButton. -->
+                        <TextBlock Text="{TemplateBinding Content}"
+                                   FontFamily="{StaticResource AppFont}"
+                                   FontSize="12.5"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource OnAccentBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.85"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Tageszeile der Wochenansicht, Spec 3.5: Haarlinie nach unten, Mauszeiger-Hintergrund, kein
+        eigener Innenabstand – der Streifen für „heute“ sitzt in der Zeile selbst ganz links und muss
+        die volle Zeilenhöhe erreichen.
+    -->
+    <Style x:Key="WeekRowButton" TargetType="Button">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="Transparent"
+                            BorderBrush="{DynamicResource HairlineBrush}"
+                            BorderThickness="0,0,0,1">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Tageszelle im Kalendergitter, Spec 3.6: Radius 8, Rahmen in AccentBrush für heute. Tage
+        außerhalb des Monats und abgewählte Wochentage sind nicht anklickbar – IsEnabled und
+        IsHitTestVisible schaltet der Auslöser auf IsActive ab. Damit fällt auch das Aufleuchten
+        unter dem Mauszeiger weg: Eine tote Zelle, die trotzdem hervorhebt, sähe aus wie ein Fehler.
+    -->
+    <Style x:Key="MonthDayCellButton" TargetType="Button">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        <Setter Property="Margin" Value="2"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsActive}" Value="False">
+                <Setter Property="IsEnabled" Value="False"/>
+                <Setter Property="IsHitTestVisible" Value="False"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ===================== Rollbalken (zeitgemäß, ohne Pfeilschaltflächen) ===================== -->
+
+    <!--
+        Wunsch des Auftraggebers: kein Windows-Standardbalken mehr. Der Stil unten steht bewusst
+        OHNE x:Key als impliziter Standardstil für ScrollBar – Theme.xaml hängt in den
+        MergedDictionaries von App.xaml, damit gilt er anwendungsweit und alle sechs ScrollViewer in
+        DayView, WeekView und MonthView bekommen ihn automatisch, ohne dass eine Ansicht etwas
+        setzen muss.
+
+        Maße: Gesamtbreite 8, Ziehbalken 6 (je 1 Luft links und rechts, damit zentriert),
+        Eckenradius 3 – also die halbe Breite und damit vollständig abgerundete Enden.
+        Mindestlänge des Ziehbalkens 30, damit er auch bei sehr langen Listen greifbar bleibt.
+        Die Spur ist durchsichtig; sichtbar ist nur der Ziehbalken.
+
+        Farben ausschließlich aus vorhandenen Token:
+          Ruhe        HairlineBrush   hell #E5E7EB auf #FFFFFF  -> Kontrast 1,24:1
+                                      dunkel #374151 auf #1F2430 -> Kontrast 1,51:1
+          Mauszeiger  MutedBrush      hell #9CA3AF -> 2,54:1  /  dunkel #8A94A3 -> 5,06:1
+          Ziehen      InkSoftBrush    hell #4B5563 -> 7,56:1  /  dunkel #9CA3AF -> 6,11:1
+        (WCAG-Kontrastverhältnis gegen SurfaceBrush, den Grund der Karten, auf denen die
+        Rollbalken liegen.) In beiden Modi steigt der Kontrast von Ruhe über Mauszeiger bis Ziehen
+        an, und der Ruhezustand liegt genau auf dem Niveau der Haarlinien und Kartenrahmen, die im
+        gesamten Entwurf als sichtbare Trennung dienen – der Balken ist damit in beiden Modi
+        erkennbar und drängt sich in keinem auf.
+    -->
+
+    <!-- Seiten-Schaltflächen ober- und unterhalb des Ziehbalkens: unsichtbar, aber anklickbar
+         (seitenweises Rollen bleibt erhalten). Transparent statt {x:Null}, sonst nimmt die Fläche
+         keine Mausklicks entgegen. -->
+    <Style x:Key="ScrollBarPageButton" TargetType="RepeatButton">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ScrollBarThumbVertical" TargetType="Thumb">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="MinHeight" Value="30"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <!-- Der äußere Border ist durchsichtig und 8 breit (Trefferfläche), der innere
+                         zeichnet den 6 breiten, voll gerundeten Balken mittig. -->
+                    <Border Background="Transparent" Padding="1,0">
+                        <Border x:Name="ThumbFill"
+                                Width="6"
+                                CornerRadius="3"
+                                Background="{DynamicResource HairlineBrush}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ThumbFill" Property="Background" Value="{DynamicResource MutedBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="ThumbFill" Property="Background" Value="{DynamicResource InkSoftBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Der waagerechte Fall tritt derzeit nirgends auf (alle sechs ScrollViewer haben
+         HorizontalScrollBarVisibility="Disabled"), ist aber vollständig mitgestaltet, damit ein
+         künftiger waagerechter Balken nicht plötzlich im Windows-Standard erscheint. -->
+    <Style x:Key="ScrollBarThumbHorizontal" TargetType="Thumb">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="MinWidth" Value="30"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="Transparent" Padding="0,1">
+                        <Border x:Name="ThumbFill"
+                                Height="6"
+                                CornerRadius="3"
+                                Background="{DynamicResource HairlineBrush}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ThumbFill" Property="Background" Value="{DynamicResource MutedBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="ThumbFill" Property="Background" Value="{DynamicResource InkSoftBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        In beiden Vorlagen fehlen die beiden RepeatButtons für LineUp/LineDown vollständig – damit
+        gibt es keine Pfeilschaltflächen an den Enden. Der Track heißt PART_Track; unter diesem
+        Namen verbindet sich Track in OnApplyTemplate selbsttätig mit Minimum, Maximum, Value und
+        ViewportSize der ScrollBar, eigene Bindungen sind deshalb nicht nötig.
+    -->
+    <ControlTemplate x:Key="VerticalScrollBarTemplate" TargetType="ScrollBar">
+        <Grid Background="Transparent" Width="8">
+            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageUpCommand" Style="{StaticResource ScrollBarPageButton}"/>
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Style="{StaticResource ScrollBarThumbVertical}"/>
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageDownCommand" Style="{StaticResource ScrollBarPageButton}"/>
+                </Track.IncreaseRepeatButton>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="HorizontalScrollBarTemplate" TargetType="ScrollBar">
+        <Grid Background="Transparent" Height="8">
+            <Track x:Name="PART_Track" IsDirectionReversed="False">
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageLeftCommand" Style="{StaticResource ScrollBarPageButton}"/>
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Style="{StaticResource ScrollBarThumbHorizontal}"/>
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageRightCommand" Style="{StaticResource ScrollBarPageButton}"/>
+                </Track.IncreaseRepeatButton>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <!-- Standardstil ohne Schlüssel: gilt für jede ScrollBar im Anwendungsbereich. -->
+    <Style TargetType="{x:Type ScrollBar}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="MinWidth" Value="8"/>
+        <Setter Property="Template" Value="{StaticResource VerticalScrollBarTemplate}"/>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Height" Value="8"/>
+                <Setter Property="MinHeight" Value="8"/>
+                <Setter Property="Template" Value="{StaticResource HorizontalScrollBarTemplate}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ===================== Profilseite ===================== -->
+
+    <!--
+        Alle Stile dieses Abschnitts bauen auf denselben Token wie der Rest der App; ein eigener
+        Farbwert kommt nirgends vor. Neue Token brauchte die Profilseite dadurch keine.
+    -->
+
+    <!-- Abzeichen mit der Rolle: abgerundete Pille mit Rahmen, neben dem Namen in der Nutzerkarte. -->
+    <Style x:Key="RoleBadge" TargetType="Border">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="12,4"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="RoleBadgeText" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkSoftBrush}"/>
+    </Style>
+
+    <!--
+        Eine Zeile eines Abschnitts: Beschriftung links, Bedienelement rechtsbündig, darunter eine
+        Haarlinie. Die letzte Zeile eines Abschnitts setzt BorderThickness an Ort und Stelle auf 0,
+        damit unter der Karte keine doppelte Linie steht.
+    -->
+    <!--
+        Zeilenhoehe: 7 statt 9 Innenabstand. Mit der neuen Zeile "Arbeitstage" waere die Seite sonst
+        bei der Standardgroesse 1000 x 700 um rund 44 Bildpunkte zu hoch und zeigte eine
+        Bildlaufleiste; die zwei Bildpunkte je Zeile holen genau das wieder herein.
+    -->
+    <Style x:Key="SettingsRow" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding" Value="16,7"/>
+    </Style>
+
+    <!-- Unterzeile einer Einstellungszeile, z. B. "Werktags um 17:30 Uhr". -->
+    <Style x:Key="SettingsSubLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkSoftBrush}"/>
+        <Setter Property="Margin" Value="0,2,0,0"/>
+        <!-- Seit die Profilseite zweispaltig ist, sind die Zeilen nur noch halb so breit. Ohne
+             Kürzung würde eine lange Unterzeile an der Spaltenkante hart abgeschnitten; mit ihr
+             endet sie sichtbar auf „…“. -->
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+
+    <!-- Schrittschalter: die beiden quadratischen Knöpfe "−" und "+" links und rechts des Werts. -->
+    <Style x:Key="StepperButton" TargetType="Button">
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="6">
+                        <!-- Eigener TextBlock statt ContentPresenter, Begründung siehe SegmentButton. -->
+                        <TextBlock Text="{TemplateBinding Content}"
+                                   FontFamily="{TemplateBinding FontFamily}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Rahmen um den ganzen Schrittschalter, im Zuschnitt des Segmentschalters (Radius 8, innen 6). -->
+    <!--
+        Einer der sieben quadratischen Umschalter der Zeile "Arbeitstage". Gebaut wie das aktive
+        Segment des SegmentButton – ausgewählt dunkel gefüllt mit heller Schrift –, nur quadratisch
+        und kleiner. Zum Vordergrund im ausgewählten Zustand gilt dieselbe Begründung wie dort:
+        SurfaceBrush ist im hellen Modus genau Weiß und dreht sich im dunklen mit.
+    -->
+    <Style x:Key="DayToggleButton" TargetType="ToggleButton">
+        <Setter Property="Width" Value="30"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Margin" Value="1,0"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkSoftBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="6">
+                        <!-- Eigener TextBlock statt ContentPresenter, Begründung siehe SegmentButton. -->
+                        <TextBlock Text="{TemplateBinding Content}"
+                                   FontFamily="{TemplateBinding FontFamily}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource InkBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsChecked" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <MultiTrigger.Setters>
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                            </MultiTrigger.Setters>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="StepperFrame" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="2"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!--
+        Schiebeschalter. Eingeschaltet grün mit weißem Knopf rechts (Vorgabe aus dem Entwurf);
+        ausgeschaltet eine graue Spur mit Rahmen und dem Knopf links. Der Knopf steht im
+        ausgeschalteten Zustand in SurfaceBrush statt in Weiß: Auf der hellen Spur (HairlineBrush)
+        wäre Weiß auf Weiß kaum zu sehen, und im dunklen Modus dreht sich das Verhältnis um.
+    -->
+    <Style x:Key="ToggleSwitch" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Track"
+                            Width="44"
+                            Height="24"
+                            CornerRadius="12"
+                            Background="{DynamicResource HairlineBrush}"
+                            BorderBrush="{DynamicResource MutedBrush}"
+                            BorderThickness="1">
+                        <Border x:Name="Knob"
+                                Width="18"
+                                Height="18"
+                                CornerRadius="9"
+                                HorizontalAlignment="Left"
+                                Margin="2,0,0,0"
+                                Background="{DynamicResource SurfaceBrush}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                            <Setter TargetName="Knob" Property="Margin" Value="0,0,2,0"/>
+                            <Setter TargetName="Knob" Property="Background" Value="{DynamicResource OnAccentBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Track" Property="Opacity" Value="0.85"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- "Abmelden" unten links: derselbe Zuschnitt wie GhostButton, nur in NegativeBrush. -->
+    <Style x:Key="LogoutButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+        <Setter Property="Foreground" Value="{DynamicResource NegativeBrush}"/>
+    </Style>
+
+</ResourceDictionary>

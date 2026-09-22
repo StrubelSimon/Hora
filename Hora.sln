@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A5B1FC2C-7397-48EA-A239-70F6E1629A22}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hora.Core", "src\Hora.Core\Hora.Core.csproj", "{F7EAA95A-6C44-47F4-8CCC-0CF2B155A108}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hora.App", "src\Hora.App\Hora.App.csproj", "{C48C8599-9A89-45AC-B7E2-C1975D7D9228}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{9EA26408-5C53-4FA8-ACAD-7D2671155480}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hora.Core.Tests", "tests\Hora.Core.Tests\Hora.Core.Tests.csproj", "{5FC0E5AE-93A2-4829-95B4-658B3E864C4A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hora.App.Tests", "tests\Hora.App.Tests\Hora.App.Tests.csproj", "{F73CE27D-E863-43A6-BC3D-608EE1142CC2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F7EAA95A-6C44-47F4-8CCC-0CF2B155A108}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7EAA95A-6C44-47F4-8CCC-0CF2B155A108}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7EAA95A-6C44-47F4-8CCC-0CF2B155A108}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7EAA95A-6C44-47F4-8CCC-0CF2B155A108}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C48C8599-9A89-45AC-B7E2-C1975D7D9228}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C48C8599-9A89-45AC-B7E2-C1975D7D9228}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C48C8599-9A89-45AC-B7E2-C1975D7D9228}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C48C8599-9A89-45AC-B7E2-C1975D7D9228}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FC0E5AE-93A2-4829-95B4-658B3E864C4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FC0E5AE-93A2-4829-95B4-658B3E864C4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FC0E5AE-93A2-4829-95B4-658B3E864C4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FC0E5AE-93A2-4829-95B4-658B3E864C4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F73CE27D-E863-43A6-BC3D-608EE1142CC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F73CE27D-E863-43A6-BC3D-608EE1142CC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F73CE27D-E863-43A6-BC3D-608EE1142CC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F73CE27D-E863-43A6-BC3D-608EE1142CC2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F7EAA95A-6C44-47F4-8CCC-0CF2B155A108} = {A5B1FC2C-7397-48EA-A239-70F6E1629A22}
+		{C48C8599-9A89-45AC-B7E2-C1975D7D9228} = {A5B1FC2C-7397-48EA-A239-70F6E1629A22}
+		{5FC0E5AE-93A2-4829-95B4-658B3E864C4A} = {9EA26408-5C53-4FA8-ACAD-7D2671155480}
+		{F73CE27D-E863-43A6-BC3D-608EE1142CC2} = {9EA26408-5C53-4FA8-ACAD-7D2671155480}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,35 @@
+<UserControl x:Class="Hora.App.Views.HoraLogo"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False">
+    <!--
+        Das Hora-Zeichen als Vektor, Vorlage assets\hora-icon.svg. Bewusst kein Bild: So bleibt es
+        in jeder Größe scharf und nimmt über DynamicResource am Themenwechsel teil – in der
+        .ico-Datei (Taskleiste, Explorer) geht beides nicht, deshalb existieren beide Fassungen.
+
+        Die Vorlage zeichnet im 64er-Raster mit umlaufendem Rand, den ein Anwendungsicon braucht.
+        Hier ist der Rand weggelassen: Der Canvas umschließt nur das Zeichen selbst (Vorlage x 17–47,
+        y 16–48), alle Koordinaten sind entsprechend um (-17,-16) verschoben. Sonst säße das Logo in
+        der 18 Punkt hohen Fensterleiste als winziger Fleck in viel Luft.
+
+        Der Querbalken steht als fertiges Parallelogramm da: die Vorlage schert ihn per skewY(-13),
+        die vier Eckpunkte sind daraus vorab ausgerechnet (y' = y + x * tan(-13°)).
+
+        Beim Einsetzen genügt die Höhe: Der Canvas gibt dem Zeichen mit seinen festen Maßen das
+        Seitenverhältnis 15:16, die Viewbox rechnet die Breite daraus aus.
+    -->
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="30" Height="32">
+            <Path Fill="{DynamicResource InkBrush}">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,7,32" RadiusX="1" RadiusY="1"/>
+                        <RectangleGeometry Rect="23,0,7,32" RadiusX="1" RadiusY="1"/>
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+            <Path Fill="{DynamicResource AccentBrush}"
+                  Data="M0,14.075 L30,7.149 L30,14.149 L0,21.075 Z"/>
+        </Canvas>
+    </Viewbox>
+</UserControl>

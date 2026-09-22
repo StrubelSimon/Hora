@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Hora</AssemblyName>
+    <RootNamespace>Hora.App</RootNamespace>
+    <!--
+      Einzige Stelle, an der die Version gepflegt wird: AppVersion.Current liest sie zur Laufzeit
+      aus der Assembly und zeigt sie im Fenstertitel und auf der Profilseite. Jedes Release zählt
+      hoch – letzte Zahl bei Fehlerbehebungen, mittlere bei neuen Funktionen, die erste nur auf
+      ausdrückliche Ansage. 1.1.1: lesbare Mauszeiger-Hinweise im Dunkelmodus (1.1.0 brachte die
+      Versionsanzeige, die zweispaltige Profilseite und das automatische Aktualisieren, 1.0.0 war
+      das erste Release mit Anwendungssymbol und bündigen Ticketzeilen).
+    -->
+    <Version>1.1.1</Version>
+    <Product>Hora</Product>
+    <Description>Übersicht der eigenen Jira-Zeitbuchungen</Description>
+    <!-- Symbol der Exe selbst: Explorer, Verknüpfungen, Dateieigenschaften. -->
+    <ApplicationIcon>Assets\hora.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hora.Core\Hora.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Styles\Fonts\*.ttf" />
+    <!--
+      Zusätzlich zu ApplicationIcon eingebettet: Window.Icon lädt die Datei über eine
+      Ressourcen-URI und versorgt damit Taskleiste und Alt-Tab-Wechsler. Das Fenster hat wegen
+      WindowStyle="None" keine eigene Titelleiste, in der das Symbol sonst säße.
+    -->
+    <Resource Include="Assets\hora.ico" />
+  </ItemGroup>
+
+</Project>

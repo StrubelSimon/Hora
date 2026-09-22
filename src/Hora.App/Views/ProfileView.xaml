@@ -1,0 +1,448 @@
+<UserControl x:Class="Hora.App.Views.ProfileView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Datenkontext dieser Ansicht ist das ProfileViewModel. Eine Vollbildseite, die die Übersicht
+        ersetzt – kein Dialog. Alle Farben kommen über DynamicResource aus den Token-Dateien; ein
+        fester Farbwert steht nirgends in dieser Datei.
+
+        Die Segmentschalter sind wie in der Kopfzeile der Übersicht gebaut: IsChecked bindet OneWay
+        auf eine nur lesbare Eigenschaft, den Wechsel löst das jeweilige Kommando aus. Eine
+        beidseitige Bindung liefe ins Leere.
+    -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===================== Kopfzeile der Seite ===================== -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <!-- Zurück-Pfeil als selbst gezeichneter Vektorpfad, wie die Blätterpfeile der
+                     Übersicht: Montserrat kennt die Pfeilzeichen nicht. -->
+                <Button Style="{StaticResource NavArrowButton}"
+                        Command="{Binding CloseCommand}"
+                        ToolTip="Zurück zur Übersicht">
+                    <Path Data="M7,0 L2,5 L7,10 M2,5 L12,5"
+                          Stroke="{DynamicResource InkBrush}"
+                          StrokeThickness="1.6"
+                          Stretch="None"/>
+                </Button>
+                <TextBlock Text="Profil"
+                           FontSize="21"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           Margin="10,0,0,0"/>
+            </StackPanel>
+
+            <Button Content="Fertig"
+                    Style="{StaticResource GhostButton}"
+                    Command="{Binding CloseCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"/>
+        </Grid>
+
+        <!-- ===================== Nutzerkarte ===================== -->
+        <!--
+            Flach gehalten: Name und E-Mail stehen nebeneinander statt untereinander, der Avatar
+            gibt mit 34 nicht mehr die Höhe vor. Die Karte kostet damit rund 50 statt 78 Punkt –
+            Höhe, die den Abschnitten darunter fehlte, sobald das Fenster klein wurde.
+        -->
+        <Border Grid.Row="1" Style="{StaticResource StatsCard}" Padding="16,8" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Derselbe runde Avatar wie in der Kopfzeile, nur wenig größer. -->
+                <Border Grid.Column="0"
+                        Style="{StaticResource AvatarCircle}"
+                        Width="34"
+                        Height="34"
+                        CornerRadius="17"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Initials}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource OnAccentBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- Zwei Spalten statt eines waagerechten StackPanels: Nur so kann die E-Mail-Adresse
+                     bei schmalem Fenster gekürzt werden, statt über die Karte hinauszulaufen. -->
+                <Grid Grid.Column="1" VerticalAlignment="Center" Margin="12,0,12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding DisplayName}"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Email}"
+                               Foreground="{DynamicResource InkSoftBrush}"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Margin="10,0,0,0"/>
+                </Grid>
+
+                <!-- Das Abzeichen bleibt ausgeblendet, solange keine Rolle eingetragen ist. -->
+                <Border Grid.Column="2"
+                        Style="{StaticResource RoleBadge}"
+                        Visibility="{Binding HasRole, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding Role}" Style="{StaticResource RoleBadgeText}"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ===================== Abschnitte ===================== -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!--
+                Zwei Spalten statt einer Liste untereinander: Einspaltig passte die Seite bei der
+                Startgröße nicht mehr ins Fenster, der letzte Abschnitt lag hinter einem Rollbalken,
+                während rechts neben den Zeilen eine halbe Fensterbreite leer blieb. Links stehen die
+                beiden Abschnitte, in denen etwas eingestellt wird, rechts die beiden, die
+                überwiegend berichten.
+            -->
+            <Grid>
+                <!--
+                    Nicht halbe/halbe: Rechts steht mit „Automatisch aktualisieren“ die längste
+                    Beschriftung neben der breitesten Steuerung (vier Segmente), links brauchen die
+                    sieben Wochentagsschalter neben ihrer Unterzeile ähnlich viel. 48:52 gibt beiden
+                    Seiten genug, auch bei der kleinsten zulässigen Fensterbreite von 860.
+                -->
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48*"/>
+                    <ColumnDefinition Width="52*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                    <!-- Abschnitt DARSTELLUNG -->
+                    <TextBlock Text="DARSTELLUNG" Style="{StaticResource SectionLabel}" Margin="4,0,0,5"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                        <StackPanel>
+
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Theme" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <Border Background="{DynamicResource SurfaceBrush}"
+                                            BorderBrush="{DynamicResource HairlineBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="2"
+                                            Grid.Column="1" HorizontalAlignment="Right">
+                                        <!-- Drei Segmente: Die Wahl „System“ folgt der
+                                             Windows-Einstellung für Apps. Hervorgehoben ist immer die
+                                             gespeicherte Wahl, nicht das wirksame Ergebnis. -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton Content="System"
+                                                         GroupName="ProfileTheme"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsSystemTheme, Mode=OneWay}"
+                                                         Command="{Binding UseSystemThemeCommand}"
+                                                         ToolTip="Folgt der Windows-Einstellung für Apps"/>
+                                            <RadioButton Content="Hell"
+                                                         GroupName="ProfileTheme"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsLightTheme, Mode=OneWay}"
+                                                         Command="{Binding UseLightThemeCommand}"/>
+                                            <RadioButton Content="Dunkel"
+                                                         GroupName="ProfileTheme"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsDarkTheme, Mode=OneWay}"
+                                                         Command="{Binding UseDarkThemeCommand}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Startansicht" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <Border Background="{DynamicResource SurfaceBrush}"
+                                            BorderBrush="{DynamicResource HairlineBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="2"
+                                            Grid.Column="1" HorizontalAlignment="Right">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton Content="Monat"
+                                                         GroupName="ProfileStartView"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsMonthStartView, Mode=OneWay}"
+                                                         Command="{Binding UseMonthStartViewCommand}"/>
+                                            <RadioButton Content="Woche"
+                                                         GroupName="ProfileStartView"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsWeekStartView, Mode=OneWay}"
+                                                         Command="{Binding UseWeekStartViewCommand}"/>
+                                            <RadioButton Content="Tag"
+                                                         GroupName="ProfileStartView"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsDayStartView, Mode=OneWay}"
+                                                         Command="{Binding UseDayStartViewCommand}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <!-- Letzte Zeile des Abschnitts: ohne Haarlinie, sonst stünde sie doppelt
+                                 neben dem unteren Kartenrand. -->
+                            <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Zeitformat" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <Border Background="{DynamicResource SurfaceBrush}"
+                                            BorderBrush="{DynamicResource HairlineBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="2"
+                                            Grid.Column="1" HorizontalAlignment="Right">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton Content="7h 45m"
+                                                         GroupName="ProfileTimeFormat"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsHoursMinutesFormat, Mode=OneWay}"
+                                                         Command="{Binding UseHoursMinutesFormatCommand}"/>
+                                            <RadioButton Content="7,75h"
+                                                         GroupName="ProfileTimeFormat"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsDecimalHoursFormat, Mode=OneWay}"
+                                                         Command="{Binding UseDecimalHoursFormatCommand}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Abschnitt ZEITERFASSUNG -->
+                    <TextBlock Text="ZEITERFASSUNG" Style="{StaticResource SectionLabel}" Margin="4,0,0,5"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                        <StackPanel>
+
+                            <!-- Sieben quadratische Umschalter, Montag bis Sonntag. Ausgewählt ist,
+                                 wer einen Wert größer null trägt; die Unterzeile nennt die Anzahl. -->
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Arbeitstage" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding WorkdayCountText}" Style="{StaticResource SettingsSubLabel}"/>
+                                    </StackPanel>
+                                    <Border Style="{StaticResource StepperFrame}" Grid.Column="1" HorizontalAlignment="Right">
+                                        <ItemsControl ItemsSource="{Binding Workdays}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <!-- Hier ist die beidseitige Bindung richtig: Ein
+                                                         Umschalter trägt seinen Zustand selbst, anders
+                                                         als die Segmente weiter oben. -->
+                                                    <ToggleButton Content="{Binding Label}"
+                                                                  Style="{StaticResource DayToggleButton}"
+                                                                  IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Sollstunden pro Tag" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="Grundlage für Differenz und Balken" Style="{StaticResource SettingsSubLabel}"/>
+                                    </StackPanel>
+                                    <Border Style="{StaticResource StepperFrame}" Grid.Column="1" HorizontalAlignment="Right">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="−"
+                                                    Style="{StaticResource StepperButton}"
+                                                    Command="{Binding DecreaseTargetHoursCommand}"
+                                                    ToolTip="Eine halbe Stunde weniger"/>
+                                            <TextBlock Text="{Binding TargetHoursText}"
+                                                       FontWeight="SemiBold"
+                                                       MinWidth="72"
+                                                       TextAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                            <Button Content="+"
+                                                    Style="{StaticResource StepperButton}"
+                                                    Command="{Binding IncreaseTargetHoursCommand}"
+                                                    ToolTip="Eine halbe Stunde mehr"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Erinnerung bei fehlender Buchung" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="Werktags um 17:30 Uhr" Style="{StaticResource SettingsSubLabel}"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="{Binding ReminderEnabled}"/>
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+
+                    <!-- Abschnitt JIRA -->
+                    <TextBlock Text="JIRA" Style="{StaticResource SectionLabel}" Margin="4,0,0,5"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                        <StackPanel>
+
+                            <!-- Der Abstand, in dem die Übersicht die Buchungen von selbst nachholt.
+                                 „Aus“ hält den Takt an; die Unterzeile nennt den gewählten Abstand. -->
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Automatisch aktualisieren" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding RefreshIntervalText}" Style="{StaticResource SettingsSubLabel}"/>
+                                    </StackPanel>
+                                    <Border Background="{DynamicResource SurfaceBrush}"
+                                            BorderBrush="{DynamicResource HairlineBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="2"
+                                            Grid.Column="1" HorizontalAlignment="Right">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton Content="Aus"
+                                                         GroupName="ProfileRefreshInterval"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsRefreshOff, Mode=OneWay}"
+                                                         Command="{Binding TurnRefreshOffCommand}"/>
+                                            <RadioButton Content="5m"
+                                                         GroupName="ProfileRefreshInterval"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsFiveMinuteRefresh, Mode=OneWay}"
+                                                         Command="{Binding UseFiveMinuteRefreshCommand}"/>
+                                            <RadioButton Content="15m"
+                                                         GroupName="ProfileRefreshInterval"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsFifteenMinuteRefresh, Mode=OneWay}"
+                                                         Command="{Binding UseFifteenMinuteRefreshCommand}"/>
+                                            <RadioButton Content="30m"
+                                                         GroupName="ProfileRefreshInterval"
+                                                         Style="{StaticResource SegmentButton}"
+                                                         IsChecked="{Binding IsThirtyMinuteRefresh, Mode=OneWay}"
+                                                         Command="{Binding UseThirtyMinuteRefreshCommand}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Instanz" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <Button Content="{Binding InstanceText}"
+                                            Style="{StaticResource LinkButton}"
+                                            Command="{Binding OpenInstanceCommand}"
+                                            Grid.Column="1" HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            ToolTip="{Binding InstanceUrl}"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Letzte Synchronisation" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding LastSyncText}"
+                                               Foreground="{DynamicResource InkSoftBrush}"
+                                               Grid.Column="1" HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Abschnitt ÜBER HORA: eigener Abschnitt und nicht unter JIRA, weil die Version
+                         die App betrifft und nicht die angebundene Jira-Instanz. -->
+                    <TextBlock Text="ÜBER HORA" Style="{StaticResource SectionLabel}" Margin="4,0,0,5"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                        <StackPanel>
+
+                            <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Version" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding VersionText}"
+                                               Foreground="{DynamicResource InkSoftBrush}"
+                                               Grid.Column="1" HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+            </Grid>
+        </ScrollViewer>
+
+        <!-- ===================== Abmelden ===================== -->
+        <Button Grid.Row="3"
+                Content="Abmelden"
+                Style="{StaticResource LogoutButton}"
+                Click="OnLogoutClick"
+                HorizontalAlignment="Left"
+                Margin="0,12,0,0"/>
+    </Grid>
+</UserControl>

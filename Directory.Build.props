@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <SatelliteResourceLanguages>de;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!--
+    Keine Symboldateien in der Release-Ausgabe: dotnet publish legte bisher Hora.pdb und
+    Hora.Core.pdb neben Hora.exe in beide Auslieferungsordner. Sie enthalten keine Daten des
+    Auftraggebers, sind für die Weitergabe aber überflüssig und stiften nur die Frage, was davon
+    mitgegeben werden muss (Befund J). Der Debug-Build bleibt unverändert und behält seine
+    Symboldateien.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+</Project>

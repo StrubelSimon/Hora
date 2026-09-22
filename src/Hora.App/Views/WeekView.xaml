@@ -1,0 +1,175 @@
+<UserControl x:Class="Hora.App.Views.WeekView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Hora.App.Controls">
+
+    <!--
+        Datenkontext dieser Ansicht ist das WeekViewModel. Aufbau nach Spec 3.5: eine Karte mit
+        einer Zeile je Arbeitstag, darunter der Abschnitt „Pro Ticket“ (Spec 3.7). Wie viele Zeilen
+        das sind, entscheidet die Auswahl „Arbeitstage“ der Profilseite – bei Montag bis Freitag
+        sind es fünf. Siehe WeekViewModel.IsVisible.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===================== Tageszeilen, Spec 3.5 ===================== -->
+        <!--
+            ClipToBounds stand hier frueher und reichte nicht: Es beschneidet auf das Rechteck der
+            Border, nicht auf deren CornerRadius. Die erste und die letzte Tageszeile fuellten die
+            Kartenecken deshalb quadratisch aus, sobald sie unter dem Mauszeiger einen Hintergrund
+            bekamen – ebenso der Streifen des heutigen Tages an der unteren linken Ecke. Den
+            richtigen Schnitt setzt controls:RoundedClip weiter unten auf den Inhalt.
+        -->
+        <Border Grid.Row="0" Style="{StaticResource Card}">
+            <!--
+                Zum Streckverhalten, weil der frühere Kommentar hier nur die halbe Wahrheit sagte:
+                Der ScrollViewer MISST seinen Inhalt tatsächlich mit unbegrenzter Höhe. Das
+                UniformGrid meldet daraus Zeilenzahl × MinHeight 44 als Wunschhöhe (höchstens
+                7 × 44 = 308), nicht die verfügbare Höhe. Gestreckt wird trotzdem, aber erst im
+                ANORDNEN: Der ScrollContentPresenter ordnet seinen Inhalt mit max(Wunschhöhe,
+                Sichtfensterhöhe) an, und das UniformGrid verteilt diese Höhe gleichmäßig auf seine
+                Zeilen. Das Gitter füllt die Karte also wirklich, solange das Sichtfenster mindestens
+                so hoch ist; darunter greift der Rollbalken. Nachgesehen, nicht hergeleitet – siehe
+                Bericht zur Korrekturrunde. Seit die Woche nur noch die Arbeitstage zeigt, sind es
+                meist fünf Zeilen, die entsprechend höher ausfallen.
+            -->
+            <!-- Radius 11 = CornerRadius 12 der Karte minus 1 Bildpunkt Rahmen. -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          controls:RoundedClip.Radius="11">
+                <ItemsControl ItemsSource="{Binding Days}">
+                    <ItemsControl.ItemsPanel>
+                        <!-- Eine Spalte, gleich hohe Zeilen: Die Karte füllt damit genau die
+                             verfügbare Höhe und läuft nie über den Rand hinaus. -->
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="1"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource WeekRowButton}"
+                                    Command="{Binding DataContext.SelectDayCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                    CommandParameter="{Binding}">
+                                <Grid MinHeight="44">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3"/>
+                                        <ColumnDefinition Width="Auto" MinWidth="168"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto" MinWidth="88"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Streifen für den heutigen Tag, 3 Bildpunkte in AccentBrush. -->
+                                    <Border Grid.Column="0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="13,0,16,0">
+                                        <TextBlock Text="{Binding DayName}" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding DateText}"
+                                                   FontSize="11.5"
+                                                   Foreground="{DynamicResource InkSoftBrush}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="8,1,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Balken gegen das Tagessoll; am Wochenende gegen den größten
+                                         Tageswert der Woche. Beides rechnet WeekDayRow.BarRatio aus. -->
+                                    <ProgressBar Grid.Column="2"
+                                                 Style="{StaticResource RatioBar}"
+                                                 Value="{Binding BarRatio, Mode=OneWay}"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,16,0"/>
+
+                                    <TextBlock Grid.Column="3"
+                                               Text="{Binding TotalText}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,16,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ===================== Abschnitt „Pro Ticket“, Spec 3.7 ===================== -->
+        <StackPanel Grid.Row="1" Margin="0,12,0,0">
+            <StackPanel.Style>
+                <!-- Gibt es keine Buchungen, entfällt der Abschnitt vollständig. -->
+                <Style TargetType="StackPanel">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+
+            <TextBlock Text="PRO TICKET" Style="{StaticResource SectionLabel}" Margin="4,0,0,6"/>
+            <Border Style="{StaticResource Card}" Padding="8,4">
+                <!--
+                    MaxHeight begrenzt, wie viel Höhe der Abschnitt „Pro Ticket“ der Tageskarte
+                    darüber wegnimmt. Bei der Startgröße 1000 × 700 stehen der Inhaltszeile rund
+                    494 Bildpunkte zur Verfügung; der Abschnitt selbst kostet zusätzlich 41
+                    (12 Abstand + 19 Beschriftung + 10 Kartenrand und -polster). Die Tageskarte
+                    braucht im ungünstigsten Fall 7 × 44 + 2 = 310, damit auch eine Sieben-Tage-Woche
+                    ohne Rollen sichtbar bleibt (bei Montag bis Freitag reichen 5 × 44 + 2 = 222).
+                    Daraus folgt MaxHeight ≤ 494 − 41 − 310 = 143. Der Wert 186 aus dem ersten Wurf
+                    ließ nur sechs Tage sichtbar. Gewählt: 140 – wie im Vorbericht vorgeschlagen,
+                    nachgerechnet und in der laufenden App nachgesehen. 140 zeigt vier Zeilen zu je
+                    zwei Tickets vollständig und lässt die fünfte angeschnitten, was den Rollbalken
+                    als solchen erkennbar macht.
+                -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="140">
+                    <!-- Zwei Spalten, von links oben nach rechts unten gefüllt. -->
+                    <!-- Grid.IsSharedSizeScope: hier liegt der Geltungsbereich der Spaltenbreiten aus
+                         IssueTotalItemTemplate, damit alle Ticketzeilen dieselben Spalten teilen. -->
+                    <ItemsControl ItemsSource="{Binding IssueTotals}"
+                                  ItemTemplate="{StaticResource IssueTotalItemTemplate}"
+                                  Grid.IsSharedSizeScope="True">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>

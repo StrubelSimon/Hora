@@ -1,0 +1,65 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Farbtoken heller Modus, Spec 2.1. Einzige Quelle für Farbwerte zusammen mit Tokens.Dark.xaml. -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#16A34A"/>
+    <SolidColorBrush x:Key="AccentMutedBrush" Color="#DCF3E4"/>
+    <SolidColorBrush x:Key="InkBrush" Color="#111827"/>
+    <SolidColorBrush x:Key="InkSoftBrush" Color="#4B5563"/>
+    <SolidColorBrush x:Key="MutedBrush" Color="#9CA3AF"/>
+    <!--
+        Angehoben von #E5E7EB (Tailwind gray-200) auf #D1D5DB (gray-300): Der alte Ton erreichte auf
+        SurfaceBrush (#FFFFFF) nur 1,24:1, der Kartenrahmen und damit der Eckenradius 12 waren im
+        hellen Modus praktisch unsichtbar. Der dunkle Modus kommt mit HairlineBrush (#374151) auf
+        SurfaceBrush (#1F2430) auf 1,51:1 – dort sieht man die Karten deutlich. Der neue Ton erreicht
+        1,47:1 auf Weiß und holt den hellen Modus damit auf dieselbe Wirkung, ohne aus der
+        Graustufenreihe auszubrechen: gray-300 ist schlicht die nächste Stufe der Reihe, aus der auch
+        alle übrigen Grautöne dieser Datei stammen. Ein Rahmen ist damit ein Rahmen, keine
+        Rechenaufgabe für das Auge, und bleibt trotzdem eine Haarlinie und keine Umrandung.
+    -->
+    <SolidColorBrush x:Key="HairlineBrush" Color="#D1D5DB"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="CanvasBrush" Color="#F7F8F8"/>
+    <SolidColorBrush x:Key="StatsCardBrush" Color="#F9FAFB"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="NegativeBrush" Color="#DC2626"/>
+
+    <!--
+        Die achtteilige Ticketpalette (TicketColor0 bis TicketColor7, Spec 2.5) ist entfallen: Alle
+        Tickets tragen jetzt die Akzentfarbe. Siehe den Stil TicketDot in Theme.xaml.
+    -->
+
+    <!--
+        Altbestand-Kompatibilität: OverviewView.xaml, DayView.xaml und WeekView.xaml verweisen mit
+        StaticResource direkt auf diese Schlüssel und werden im Rahmen dieses Tasks nicht angefasst
+        (nur LoginView.xaml darf angepasst werden). Damit diese drei Ansichten weiterhin laden, ohne
+        dass irgendwo ein Farbwert außerhalb dieser beiden Token-Dateien steht, sind die Schlüssel hier
+        auf den passenden neuen Ton abgestimmt. WarningTextBrush hat keine Entsprechung in Spec 2.1/2.2;
+        der Wert ist bewusst gewählt und bleibt auf den Warnbanner der Übersicht beschränkt.
+    -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#F7F8F8"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#D1D5DB"/>
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#4B5563"/>
+    <SolidColorBrush x:Key="ErrorTextBrush" Color="#DC2626"/>
+    <SolidColorBrush x:Key="WarningTextBrush" Color="#B45309"/>
+
+    <!--
+        Abdeckung hinter der Ladeanzeige der Übersicht. Ersetzt den früher fest eingetragenen
+        halbtransparenten Weißwert in OverviewView.xaml: Farbwerte stehen ausschließlich in diesen
+        beiden Token-Dateien, und nur so schaltet die Abdeckung im Dunkelmodus mit um.
+        Alpha B3 entspricht rund 70 Prozent Deckung.
+    -->
+    <SolidColorBrush x:Key="ScrimBrush" Color="#B3FFFFFF"/>
+
+    <!--
+        Vordergrund auf einer kräftig gefüllten Fläche (AccentBrush, NegativeBrush). Beide Töne
+        bleiben in hellem wie dunklem Modus mitteldunkel, deshalb trägt dieses Token in beiden
+        Token-Dateien denselben weißen Wert. Es ersetzt die früher fest eingetragenen Weißwerte in
+        Theme.xaml (Schließen-Knopf, PrimaryButton, AvatarButton): Farbwerte stehen ausschließlich
+        in diesen beiden Dateien.
+        Nicht zu verwechseln mit dem Vordergrund auf InkBrush – der dreht sich zwischen den Modi um
+        und wird deshalb über SurfaceBrush gelöst.
+    -->
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF"/>
+
+</ResourceDictionary>

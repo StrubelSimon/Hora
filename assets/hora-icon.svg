@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Hora</title>
+  <g fill="#2C2C2C">
+    <rect x="17" y="16" width="7" height="32" rx="1"></rect>
+    <rect x="40" y="16" width="7" height="32" rx="1"></rect>
+  </g>
+  <rect x="17" y="28" width="30" height="7" rx="1" fill="#00AA70" transform="skewY(-13) translate(0 6)"></rect>
+</svg>

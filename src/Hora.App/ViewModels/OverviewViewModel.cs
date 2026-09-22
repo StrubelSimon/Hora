@@ -302,9 +302,17 @@ public partial class OverviewViewModel : ObservableObject
             _loadedEntries = result.Entries;
             _loadedFrom = from;
             _loadedTo = to;
-            WarningMessage = result.FailedIssueKeys.Count == 0
-                ? null
-                : $"Für {result.FailedIssueKeys.Count} Ticket(s) konnten die Buchungen nicht geladen werden: {string.Join(", ", result.FailedIssueKeys)}";
+
+            // Die Warnzeile fasst beides zusammen: Jira-Tickets, deren Worklogs nicht geladen
+            // werden konnten, und fertige Sätze der übrigen Quellen (Asana).
+            var warnings = new List<string>();
+            if (result.FailedIssueKeys.Count > 0)
+            {
+                warnings.Add($"Für {result.FailedIssueKeys.Count} Ticket(s) konnten die Buchungen nicht geladen werden: {string.Join(", ", result.FailedIssueKeys)}");
+            }
+
+            warnings.AddRange(result.Warnings);
+            WarningMessage = warnings.Count == 0 ? null : string.Join(" ", warnings);
 
             // Ein geglückter Abruf räumt die Meldung eines gescheiterten ab. Beim stillen Abruf ist
             // das die einzige Stelle, an der das geschieht: Zu Beginn zu leeren hieße, eine

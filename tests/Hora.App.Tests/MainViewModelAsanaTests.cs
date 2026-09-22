@@ -141,4 +141,59 @@ public class MainViewModelAsanaTests
         Assert.Equal(0, asanaStore.DeleteCount);
         Assert.Equal("asana-token", Assert.Single(tokensUsed));
     }
+
+    // ===================== Zeitpunkt des letzten Asana-Abrufs =====================
+
+    private static readonly DateTimeOffset Now = new(2026, 9, 22, 8, 30, 0, TimeSpan.FromHours(2));
+
+    private static MainViewModel BuildWith(FakeSettingsStore settings, FakeAsanaCredentialStore asanaStore) =>
+        new(
+            new FakeCredentialStore
+            {
+                Stored = new StoredCredentials("https://example.atlassian.net", "a@b.de", "jira-token"),
+            },
+            settings,
+            new NullLogger(),
+            (_, _, _) => new FakeJiraClient(),
+            () => new DateOnly(2026, 9, 22),
+            now: () => Now,
+            asanaCredentialStore: asanaStore,
+            asanaClientFactory: _ => new StubAsanaClient());
+
+    /// <summary>
+    /// Der Zeitpunkt des letzten Abrufs wird für Asana getrennt festgehalten: Die Profilseite zeigt
+    /// ihn in der eigenen Asana-Zeile, nicht in der von Jira.
+    /// </summary>
+    [Fact]
+    public async Task ASuccessfulFetchStoresTheAsanaMomentWhileConnected()
+    {
+        var settings = new FakeSettingsStore();
+        var viewModel = BuildWith(
+            settings,
+            new FakeAsanaCredentialStore
+            {
+                Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            });
+
+        await viewModel.StartAsync();
+
+        Assert.Equal(Now, settings.Settings.LastSyncAt);
+        Assert.Equal(Now, settings.Settings.AsanaLastSyncAt);
+    }
+
+    /// <summary>
+    /// Ohne Verbindung stünde dort ein Zeitpunkt, zu dem nie etwas von Asana geholt wurde — die
+    /// Zeile bleibt deshalb leer.
+    /// </summary>
+    [Fact]
+    public async Task ASuccessfulFetchLeavesTheAsanaMomentEmptyWithoutAConnection()
+    {
+        var settings = new FakeSettingsStore();
+        var viewModel = BuildWith(settings, new FakeAsanaCredentialStore());
+
+        await viewModel.StartAsync();
+
+        Assert.Equal(Now, settings.Settings.LastSyncAt);
+        Assert.Null(settings.Settings.AsanaLastSyncAt);
+    }
 }

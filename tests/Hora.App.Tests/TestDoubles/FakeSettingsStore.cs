@@ -43,6 +43,7 @@ internal sealed class FakeSettingsStore : ISettingsStore
         ReminderEnabled = settings.ReminderEnabled,
         RefreshIntervalMinutes = settings.RefreshIntervalMinutes,
         LastSyncAt = settings.LastSyncAt,
+        AsanaLastSyncAt = settings.AsanaLastSyncAt,
         Schedule = settings.Schedule is null
             ? null!
             : new WorkSchedule

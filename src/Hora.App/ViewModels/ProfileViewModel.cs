@@ -28,6 +28,7 @@ public partial class ProfileViewModel : ObservableObject
 
     private readonly ISettingsStore _settingsStore;
     private readonly IThemeSwitcher? _themeSwitcher;
+    private readonly IAsanaCredentialStore? _asanaCredentialStore;
 
     // Dieselbe Instanz, an der auch die Übersicht hängt: Ändert der Schrittschalter die
     // Sollstunden, rechnen Kennzahlen und Balken sofort mit den neuen Werten.
@@ -40,7 +41,8 @@ public partial class ProfileViewModel : ObservableObject
         JiraUser user,
         string baseUrl,
         WorkSchedule schedule,
-        IThemeSwitcher? themeSwitcher = null)
+        IThemeSwitcher? themeSwitcher = null,
+        IAsanaCredentialStore? asanaCredentialStore = null)
     {
         _settingsStore = settingsStore;
         _themeSwitcher = themeSwitcher;
@@ -82,6 +84,12 @@ public partial class ProfileViewModel : ObservableObject
         // Der Anzeigewert des Schrittschalters kommt aus der lebenden Woche: der erste Arbeitstag,
         // der nicht null ist.
         _targetHours = _schedule.GetWorkdayHours();
+
+        _asanaCredentialStore = asanaCredentialStore;
+        _isAsanaConnected = asanaCredentialStore?.Load() is not null;
+        AsanaLastSyncText = settings.AsanaLastSyncAt is { } asanaSync
+            ? asanaSync.ToString(LastSyncFormat, CultureInfo.InvariantCulture)
+            : NoLastSyncText;
 
         if (_themeSwitcher is not null)
         {
@@ -128,6 +136,49 @@ public partial class ProfileViewModel : ObservableObject
 
     [RelayCommand]
     private void OpenInstance() => BrowserLauncher.Open(InstanceUrl);
+
+    // ===================== Asana =====================
+
+    /// <summary>Nutzer will Asana verbinden; die Hülle öffnet das Fenster.</summary>
+    public event Action? AsanaConnectRequested;
+
+    /// <summary>Verbindung wurde hergestellt oder getrennt; die Hülle wechselt den Steckplatz.</summary>
+    public event Action? AsanaConnectionChanged;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AsanaStatusText))]
+    [NotifyPropertyChangedFor(nameof(AsanaActionText))]
+    private bool _isAsanaConnected;
+
+    public string AsanaStatusText => _asanaCredentialStore?.Load() is { } credentials
+        ? $"{credentials.UserName} · {credentials.WorkspaceName}"
+        : "Nicht verbunden";
+
+    public string AsanaActionText => IsAsanaConnected ? "Trennen" : "Verbinden";
+
+    public string AsanaLastSyncText { get; private set; } = NoLastSyncText;
+
+    [RelayCommand]
+    private void ConnectAsana() => AsanaConnectRequested?.Invoke();
+
+    /// <summary>
+    /// Wird von der Hülle gerufen, nachdem das Fenster erfolgreich verbunden hat. Liest den neuen
+    /// Stand aus dem Speicher und meldet ihn weiter.
+    /// </summary>
+    public void RefreshAsanaState()
+    {
+        IsAsanaConnected = _asanaCredentialStore?.Load() is not null;
+        OnPropertyChanged(nameof(AsanaStatusText));
+        AsanaConnectionChanged?.Invoke();
+    }
+
+    /// <summary>Trennt die Verbindung. Die Rückfrage liegt — wie beim Abmelden — in der Ansicht.</summary>
+    [RelayCommand]
+    private void DisconnectAsana()
+    {
+        _asanaCredentialStore?.Delete();
+        RefreshAsanaState();
+    }
 
     // ===================== Automatisch aktualisieren =====================
 

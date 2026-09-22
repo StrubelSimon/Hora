@@ -240,12 +240,28 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Die Profilseite will die Asana-Verbindung herstellen. Das Fenster öffnet die Ansicht;
+    /// dieses ViewModel kennt keine WPF-Typen. Nach erfolgreichem Verbinden ruft die Ansicht
+    /// <see cref="ProfileViewModel.RefreshAsanaState"/> auf.
+    /// </summary>
+    public event Action<ProfileViewModel>? AsanaConnectRequested;
+
+    /// <summary>Baut das ViewModel für das Verbinden-Fenster. Die Ansicht hängt es an ein Fenster.</summary>
+    public AsanaConnectViewModel? CreateAsanaConnectViewModel() =>
+        _asanaClientFactory is null || _asanaCredentialStore is null
+            ? null
+            : new AsanaConnectViewModel(_asanaClientFactory, _asanaCredentialStore);
+
+    /// <summary>
     /// Die Profilseite ersetzt die Übersicht als Vollbildseite. Die Übersicht bleibt dabei am Leben:
     /// „Fertig“ und der Zurück-Pfeil zeigen wieder genau dieselbe Instanz, ohne neuen Abruf.
     /// </summary>
     private void ShowProfile(OverviewViewModel overview, JiraUser user, string baseUrl, WorkSchedule schedule)
     {
-        var profile = new ProfileViewModel(_settingsStore, user, baseUrl, schedule, _themeManager);
+        var profile = new ProfileViewModel(_settingsStore, user, baseUrl, schedule, _themeManager, _asanaCredentialStore);
+
+        profile.AsanaConnectionChanged += ApplyAsanaConnection;
+        profile.AsanaConnectRequested += () => AsanaConnectRequested?.Invoke(profile);
 
         profile.CloseRequested += () =>
         {
@@ -285,6 +301,13 @@ public partial class MainViewModel : ObservableObject
         {
             var settings = _settingsStore.Load();
             settings.LastSyncAt = _now();
+            // Nur mit bestehender Verbindung: Ohne sie stünde in der Asana-Zeile der Profilseite
+            // ein Zeitpunkt, zu dem nie etwas von Asana geholt wurde.
+            if (_asanaCredentialStore?.Load() is not null)
+            {
+                settings.AsanaLastSyncAt = settings.LastSyncAt;
+            }
+
             _settingsStore.Save(settings);
         }
         catch (Exception ex)

@@ -53,4 +53,7 @@ public sealed class AppSettings
 
     /// <summary>Zeitpunkt des letzten erfolgreichen Abrufs; null, solange es keinen gab.</summary>
     public DateTimeOffset? LastSyncAt { get; set; }
+
+    /// <summary>Zeitpunkt des letzten erfolgreichen Asana-Abrufs; null, solange es keinen gab.</summary>
+    public DateTimeOffset? AsanaLastSyncAt { get; set; }
 }

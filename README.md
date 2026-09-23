@@ -61,10 +61,10 @@ Abschnitte:
 | **ZEITERFASSUNG** | Arbeitstage „Mo Di Mi Do Fr Sa So“ | sieben Umschalter; die Unterzeile nennt die Anzahl, zum Beispiel „5 Tage pro Woche“ |
 | | Sollstunden pro Tag | Schrittschalter in halben Stunden, 0 bis 24; gilt für **alle ausgewählten** Arbeitstage |
 | | Erinnerung bei fehlender Buchung | merkt sich nur die Wahl, siehe unten |
-| **JIRA** | Instanz | die eigene Jira-Adresse; ein Klick öffnet sie im Browser |
-| | Letzte Synchronisation | Zeitpunkt des letzten erfolgreichen Abrufs, z. B. „17.09.2026, 09:12“. Gab es noch keinen: „–“ |
 | **ASANA** | Verbindung | Personal Access Token und Workspace. „Verbinden“ öffnet ein kleines Fenster; „Trennen“ fragt zurück und lässt die Jira-Anmeldung stehen |
 | | Letzte Synchronisation | Zeitpunkt des letzten erfolgreichen Asana-Abrufs |
+| **JIRA** | Instanz | die eigene Jira-Adresse; ein Klick öffnet sie im Browser |
+| | Letzte Synchronisation | Zeitpunkt des letzten erfolgreichen Abrufs, z. B. „17.09.2026, 09:12“. Gab es noch keinen: „–“ |
 | **EXPORT** | Monat | Schrittschalter in Monatsschritten; beginnt beim laufenden Monat, weiter vorwärts geht es nicht |
 | | Tickets aufschlüsseln | mit: unter jedem Tag seine Tickets; ohne: nur eine Zeile je Tag |
 | | Soll und Differenz | zwei zusätzliche Spalten je Tageszeile |

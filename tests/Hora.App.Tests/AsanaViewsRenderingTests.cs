@@ -202,7 +202,7 @@ public class AsanaViewsRenderingTests
                 Assert.Contains("Verbinden", ButtonLabels(view));
 
                 // Ohne Verbindung gäbe es keinen Zeitpunkt zu zeigen; die Zeile bleibt weg.
-                Assert.DoesNotContain("Letzte Synchronisation", texts.Skip(texts.IndexOf("ASANA")));
+                Assert.DoesNotContain("Letzte Synchronisation", SectionTexts(view, "ASANA"));
             });
     }
 
@@ -220,7 +220,7 @@ public class AsanaViewsRenderingTests
                 var texts = VisibleTexts(view);
                 Assert.Contains("Simon Strubel · ADVISORI", texts);
                 Assert.Contains("Trennen", ButtonLabels(view));
-                Assert.Contains("Letzte Synchronisation", texts.Skip(texts.IndexOf("ASANA")));
+                Assert.Contains("Letzte Synchronisation", SectionTexts(view, "ASANA"));
             });
     }
 
@@ -256,6 +256,31 @@ public class AsanaViewsRenderingTests
 
     private static List<string> ButtonLabels(DependencyObject root) =>
         Buttons(root).Select(button => button.Content as string).OfType<string>().ToList();
+
+    /// <summary>Die Überschriften der Profilabschnitte, in der Reihenfolge der Seite.</summary>
+    private static readonly string[] SectionLabels =
+        { "DARSTELLUNG", "ZEITERFASSUNG", "ASANA", "JIRA", "EXPORT", "ÜBER HORA" };
+
+    /// <summary>
+    /// Die sichtbaren Texte eines Profilabschnitts, von seiner Überschrift bis zur nächsten.
+    /// </summary>
+    /// <remarks>
+    /// „Alles ab der Überschrift“ genügt nicht: Die Profilseite hat zwei Spalten, und der visuelle
+    /// Baum läuft am Ende der einen in die andere. Seit ASANA links unter ZEITERFASSUNG steht,
+    /// folgt darauf der JIRA-Abschnitt — der eine eigene Zeile „Letzte Synchronisation“ trägt und
+    /// eine Zusicherung über die Asana-Zeile sonst still beantwortet.
+    /// </remarks>
+    private static List<string> SectionTexts(ProfileView view, string section)
+    {
+        var texts = VisibleTexts(view);
+        var start = texts.IndexOf(section);
+        Assert.True(start >= 0, $"Abschnitt „{section}“ steht nicht auf der Profilseite.");
+
+        var next = texts.FindIndex(start + 1, text => SectionLabels.Contains(text));
+        return next < 0
+            ? texts.Skip(start).ToList()
+            : texts.Skip(start).Take(next - start).ToList();
+    }
 
     /// <summary>Die Texte aller sichtbaren Textblöcke, in der Reihenfolge des visuellen Baums.</summary>
     private static List<string> VisibleTexts(DependencyObject root) =>

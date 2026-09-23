@@ -1,4 +1,4 @@
-using Hora.Core.Worklogs;
+﻿using Hora.Core.Worklogs;
 
 namespace Hora.App.ViewModels;
 
@@ -16,12 +16,22 @@ public sealed record PeriodStats(
     TimeSpan Target,
     TimeSpan Difference,
     double Ratio,
-    DurationFormat Format = DurationFormat.HoursMinutes)
+    DurationFormat Format = DurationFormat.HoursMinutes,
+    TimeSpan? Limit = null)
 {
-    public static PeriodStats For(TimeSpan logged, TimeSpan target, DurationFormat format = DurationFormat.HoursMinutes)
+    /// <summary>
+    /// <paramref name="limit"/> ist die Höchstarbeitszeit des Zeitraums, jenseits derer der Balken
+    /// rot wird. Gesetzt wird sie nur in der Tagesansicht (zehn Stunden, § 3 ArbZG); Wochen- und
+    /// Monatssumme bleiben ohne, denn die Grenze gilt je Tag und nicht je Zeitraum.
+    /// </summary>
+    public static PeriodStats For(
+        TimeSpan logged,
+        TimeSpan target,
+        DurationFormat format = DurationFormat.HoursMinutes,
+        TimeSpan? limit = null)
     {
         var ratio = target > TimeSpan.Zero ? logged.TotalHours / target.TotalHours : 0.0;
-        return new PeriodStats(logged, target, logged - target, ratio, format);
+        return new PeriodStats(logged, target, logged - target, ratio, format, limit);
     }
 
     public string LoggedText => DurationFormatter.Format(Logged, Format);
@@ -50,6 +60,10 @@ public sealed record PeriodStats(
         ? $"{Math.Round(Ratio * 100, MidpointRounding.AwayFromZero):0} %"
         : "–";
 
-    /// <summary>Anders als PercentText auf 0 bis 1 begrenzt, damit der Balken nie über volle Länge hinausschießt.</summary>
-    public double BarRatio => Target > TimeSpan.Zero ? Math.Clamp(Ratio, 0.0, 1.0) : 0.0;
+    /// <summary>
+    /// Die drei Abschnitte des Balkens: grün bis zum Soll, orange darüber, rot jenseits der Grenze.
+    /// Anders als PercentText schießt er nie über die volle Länge hinaus – wie weit jemand über dem
+    /// Soll liegt, zeigt stattdessen der Anteil der farbigen Abschnitte.
+    /// </summary>
+    public BarSegments Segments => BarSegments.For(Logged, Target, Limit);
 }

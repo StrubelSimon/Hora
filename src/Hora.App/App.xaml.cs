@@ -80,6 +80,7 @@ public partial class App : Application
             themeManager,
             now: null,
             refreshScheduler: new DispatcherRefreshScheduler(logger),
+            saveFilePicker: new SaveFileDialogPicker(),
             asanaCredentialStore: new DpapiAsanaCredentialStore(paths),
             asanaClientFactory: AsanaClient.Create);
 

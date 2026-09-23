@@ -22,6 +22,9 @@ public partial class MainViewModel : ObservableObject
     private readonly IAsanaCredentialStore? _asanaCredentialStore;
     private readonly Func<string, IAsanaClient>? _asanaClientFactory;
 
+    // Nur durchgereicht: Gebraucht wird der Speichern-Dialog allein vom Export der Profilseite.
+    private readonly ISaveFilePicker? _saveFilePicker;
+
     // Eigene Uhr für den Zeitpunkt der letzten Synchronisation, damit dieser Zeitpunkt prüfbar ist.
     private readonly Func<DateTimeOffset> _now;
 
@@ -38,6 +41,7 @@ public partial class MainViewModel : ObservableObject
         IThemeSwitcher? themeManager = null,
         Func<DateTimeOffset>? now = null,
         IRefreshScheduler? refreshScheduler = null,
+        ISaveFilePicker? saveFilePicker = null,
         IAsanaCredentialStore? asanaCredentialStore = null,
         Func<string, IAsanaClient>? asanaClientFactory = null)
     {
@@ -53,6 +57,7 @@ public partial class MainViewModel : ObservableObject
         // Ein Taktgeber für die ganze Laufzeit: Er hängt jeweils an der lebenden Übersicht und
         // steht still, solange keine da ist (Login, nach dem Abmelden).
         _refreshScheduler = refreshScheduler;
+        _saveFilePicker = saveFilePicker;
         _asanaCredentialStore = asanaCredentialStore;
         _asanaClientFactory = asanaClientFactory;
     }
@@ -181,7 +186,8 @@ public partial class MainViewModel : ObservableObject
             ShowLogin("Die Anmeldung ist abgelaufen oder wurde widerrufen.");
         };
         overview.SyncSucceeded += StoreLastSync;
-        overview.ProfileRequested += () => ShowProfile(overview, user, baseUrl, schedule);
+        // Der Export der Profilseite holt seinen Monat über denselben Abrufdienst wie die Übersicht.
+        overview.ProfileRequested += () => ShowProfile(overview, user, baseUrl, schedule, worklogs, zone);
 
         CurrentScreen = overview;
         _ = RunInitialLoadAsync(overview);
@@ -256,9 +262,26 @@ public partial class MainViewModel : ObservableObject
     /// Die Profilseite ersetzt die Übersicht als Vollbildseite. Die Übersicht bleibt dabei am Leben:
     /// „Fertig“ und der Zurück-Pfeil zeigen wieder genau dieselbe Instanz, ohne neuen Abruf.
     /// </summary>
-    private void ShowProfile(OverviewViewModel overview, JiraUser user, string baseUrl, WorkSchedule schedule)
+    private void ShowProfile(
+        OverviewViewModel overview,
+        JiraUser user,
+        string baseUrl,
+        WorkSchedule schedule,
+        IWorklogService worklogs,
+        TimeZoneInfo zone)
     {
-        var profile = new ProfileViewModel(_settingsStore, user, baseUrl, schedule, _themeManager, _asanaCredentialStore);
+        var profile = new ProfileViewModel(
+            _settingsStore,
+            user,
+            baseUrl,
+            schedule,
+            _themeManager,
+            worklogs,
+            zone,
+            _logger,
+            _saveFilePicker,
+            _now,
+            _asanaCredentialStore);
 
         // Der Steckplatz allein genügt hier nicht: Die Übersicht steht mit den Zeilen da, die sie
         // vor dem Wechsel geholt hat. Ohne erzwungenen Neuabruf erschienen die Asana-Zeiten nach dem

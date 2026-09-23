@@ -1,5 +1,6 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Hora.App.Controls"
                     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
 
     <!--
@@ -162,6 +163,14 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                        </Trigger>
+                        <!-- Abgeschaltet blass, wie beim GhostButton. Gebraucht vom Monatswähler des
+                             Exports: Vorwärts endet beim laufenden Monat, und ein Pfeil, der gleich
+                             aussieht und doch nichts tut, wäre die schlechtere Antwort darauf. Die
+                             Blätterpfeile der Übersicht sind nie abgeschaltet — dort ändert sich nichts. -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.35"/>
+                            <Setter Property="Cursor" Value="Arrow"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -720,8 +729,8 @@
     <!-- ============== Bausteine der vier Ansichten, Spec 3.2 bis 3.7 (Task R4) ============== -->
 
     <!--
-        Fortschrittsbalken für eine Verhältniszahl zwischen 0 und 1 (PeriodStats.BarRatio,
-        WeekDayRow.BarRatio, MonthCellRow.BarRatio). Umgesetzt als ProgressBar mit eigener Vorlage:
+        Fortschrittsbalken für eine Verhältniszahl zwischen 0 und 1 (IssueTotalRow.BarRatio im
+        Abschnitt „Pro Ticket“). Umgesetzt als ProgressBar mit eigener Vorlage:
         WPF übersetzt eine Zahl ohne Wertwandler nicht in eine Breite, eine ProgressBar rechnet
         genau das von Haus aus. Minimum und Maximum stehen deshalb fest auf 0 und 1, gebunden wird
         ausschließlich Value. Spec 2.4: Höhe 6, Radius 3. Die leere Spur steht in HairlineBrush
@@ -750,6 +759,47 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="Value" Value="0">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource HairlineBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Der dreifarbige Tagesbalken (BarSegments): grün bis zum Tagessoll, orange für die Mehrzeit
+        darüber, rot ab der zehnten Stunde. Kein Schlüssel: Der Stil gilt über den
+        Typ und damit an allen drei Einsatzorten – Kennzahlenkarte, Tageszeile der Woche, Tageszelle
+        des Monats. Maße wie beim RatioBar (Höhe 6, Radius 3, Spec 2.4); die Monatsansicht setzt
+        ihre eigene Höhe von 4.
+
+        Der Schnitt liegt auf dem Gitter und nicht als ClipToBounds auf der Border: ClipToBounds
+        weiß nichts vom CornerRadius, die Abschnitte stünden sonst eckig über die Rundung hinaus.
+    -->
+    <Style TargetType="{x:Type controls:SegmentedRatioBar}">
+        <Setter Property="Height" Value="6"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsHitTestVisible" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:SegmentedRatioBar}">
+                    <Border x:Name="Track" Background="{DynamicResource AccentMutedBrush}" CornerRadius="3">
+                        <Grid controls:RoundedClip.Radius="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{Binding TargetWidth, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                <ColumnDefinition Width="{Binding OvertimeWidth, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                <ColumnDefinition Width="{Binding OverLimitWidth, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                <ColumnDefinition Width="{Binding RestWidth, RelativeSource={RelativeSource TemplatedParent}}"/>
+                            </Grid.ColumnDefinitions>
+                            <Rectangle x:Name="PART_Target" Grid.Column="0" Fill="{DynamicResource AccentBrush}"/>
+                            <Rectangle x:Name="PART_Overtime" Grid.Column="1" Fill="{DynamicResource OvertimeBrush}"/>
+                            <Rectangle x:Name="PART_OverLimit" Grid.Column="2" Fill="{DynamicResource OverLimitBrush}"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Nichts erfasst: Die Spur steht blasser da, wie beim RatioBar. -->
+                        <Trigger Property="IsEmpty" Value="True">
                             <Setter TargetName="Track" Property="Background" Value="{DynamicResource HairlineBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -860,7 +910,9 @@
                        Foreground="{DynamicResource InkSoftBrush}"
                        VerticalAlignment="Center"/>
             <!-- Balken je Ticket, Spec 3.7: bemessen am größten Eintrag des Zeitraums
-                 (IssueTotalRow.BarRatio). Gleicher Stil wie die Balken der Wochenansicht. -->
+                 (IssueTotalRow.BarRatio). Einfarbig und bewusst nicht der dreifarbige
+                 SegmentedRatioBar: Ein Ticket hat kein Soll, an dem sich Mehrzeit bemessen
+                 ließe – der Balken bemisst sich am größten Eintrag des Zeitraums. -->
             <ProgressBar Grid.Column="2"
                          Style="{StaticResource RatioBar}"
                          Value="{Binding BarRatio, Mode=OneWay}"

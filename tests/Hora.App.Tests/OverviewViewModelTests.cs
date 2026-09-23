@@ -1,4 +1,4 @@
-using Hora.App.Tests.TestDoubles;
+﻿using Hora.App.Tests.TestDoubles;
 using Hora.App.ViewModels;
 using Hora.Core.Jira;
 using Hora.Core.Jira.Models;
@@ -544,7 +544,47 @@ public class OverviewViewModelTests
     }
 
     [Fact]
-    public async Task Week_day_bar_ratio_uses_the_daily_target_or_the_week_maximum_when_the_target_is_zero()
+    public async Task The_stats_bar_of_a_single_day_turns_red_beyond_ten_hours()
+    {
+        var service = new FakeWorklogService
+        {
+            Respond = (_, _) => new WorklogFetchResult(
+                new[] { Entry(16, 8, 660) }, // Mittwoch, elf Stunden am Stück
+                Array.Empty<string>(),
+                Array.Empty<string>()),
+        };
+        var vm = CreateViewModel(service);
+
+        await vm.LoadAsync();
+
+        Assert.Equal(8.0 / 11.0, vm.Stats.Segments.TargetShare, 3);
+        Assert.Equal(2.0 / 11.0, vm.Stats.Segments.OvertimeShare, 3);
+        Assert.Equal(1.0 / 11.0, vm.Stats.Segments.OverLimitShare, 3);
+    }
+
+    [Fact]
+    public async Task The_stats_bar_of_a_week_stays_orange_because_the_ten_hour_limit_is_a_daily_one()
+    {
+        var service = new FakeWorklogService
+        {
+            Respond = (_, _) => new WorklogFetchResult(
+                new[] { Entry(14, 8, 600), Entry(15, 8, 600), Entry(16, 8, 600), Entry(17, 8, 600), Entry(18, 8, 600) },
+                Array.Empty<string>(),
+                Array.Empty<string>()),
+        };
+        var vm = CreateViewModel(service);
+        await vm.LoadAsync();
+
+        vm.ShowWeekCommand.Execute(null);
+
+        // 50 von 40 Stunden: vier Fünftel grün, ein Fünftel orange, nichts rot.
+        Assert.Equal(0.8, vm.Stats.Segments.TargetShare, 3);
+        Assert.Equal(0.2, vm.Stats.Segments.OvertimeShare, 3);
+        Assert.Equal(0.0, vm.Stats.Segments.OverLimitShare, 3);
+    }
+
+    [Fact]
+    public async Task Week_day_bars_run_green_up_to_the_target_and_orange_where_there_is_none()
     {
         var service = new FakeWorklogService
         {
@@ -557,7 +597,12 @@ public class OverviewViewModelTests
 
         await vm.LoadAsync();
 
-        Assert.Equal(0.5, vm.Week.Days[2].BarRatio, 3); // Mittwoch: 4h von 8h Soll
-        Assert.Equal(0.75, vm.Week.Days[5].BarRatio, 3); // Samstag: Soll 0 -> bemisst sich am Wochenmaximum (4h)
+        // Mittwoch: 4h von 8h Soll, also ein halber grüner Balken ohne Mehrzeit.
+        Assert.Equal(0.5, vm.Week.Days[2].Segments.TargetShare, 3);
+        Assert.Equal(0.0, vm.Week.Days[2].Segments.OvertimeShare, 3);
+
+        // Samstag: kein Soll, also ist die ganze Buchung Mehrzeit.
+        Assert.Equal(0.0, vm.Week.Days[5].Segments.TargetShare, 3);
+        Assert.Equal(1.0, vm.Week.Days[5].Segments.OvertimeShare, 3);
     }
 }

@@ -48,4 +48,20 @@ public class WeekCalendarTests
     {
         Assert.Equal("KW 38 · 14.09. – 20.09.2026", WeekCalendar.WeekLabel(new DateOnly(2026, 9, 16)));
     }
+
+    [Fact]
+    public void ShortDayName_returns_the_two_letter_weekday_without_a_date()
+    {
+        Assert.Equal("Mo", WeekCalendar.ShortDayName(new DateOnly(2026, 9, 14)));
+        Assert.Equal("Sa", WeekCalendar.ShortDayName(new DateOnly(2026, 9, 19)));
+        Assert.Equal("So", WeekCalendar.ShortDayName(new DateOnly(2026, 9, 20)));
+    }
+
+    [Fact]
+    public void MonthLabel_uses_the_german_month_name_and_the_year()
+    {
+        Assert.Equal("September 2026", WeekCalendar.MonthLabel(new DateOnly(2026, 9, 16)));
+        Assert.Equal("Januar 2027", WeekCalendar.MonthLabel(new DateOnly(2027, 1, 31)));
+        Assert.Equal("März 2026", WeekCalendar.MonthLabel(new DateOnly(2026, 3, 1)));
+    }
 }

@@ -44,6 +44,8 @@ internal sealed class FakeSettingsStore : ISettingsStore
         RefreshIntervalMinutes = settings.RefreshIntervalMinutes,
         LastSyncAt = settings.LastSyncAt,
         AsanaLastSyncAt = settings.AsanaLastSyncAt,
+        ExportIncludeIssues = settings.ExportIncludeIssues,
+        ExportIncludeTargets = settings.ExportIncludeTargets,
         Schedule = settings.Schedule is null
             ? null!
             : new WorkSchedule

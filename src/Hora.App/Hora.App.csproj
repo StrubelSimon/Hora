@@ -10,11 +10,10 @@
       Einzige Stelle, an der die Version gepflegt wird: AppVersion.Current liest sie zur Laufzeit
       aus der Assembly und zeigt sie im Fenstertitel und auf der Profilseite. Jedes Release zählt
       hoch – letzte Zahl bei Fehlerbehebungen, mittlere bei neuen Funktionen, die erste nur auf
-      ausdrückliche Ansage. 1.3.0 brachte die Asana-Verbindung als zweite Zeitquelle (1.2.0 ist
-      bereits vom CSV-Monatsexport einer parallelen Arbeit belegt). Davor: 1.1.1 mit lesbaren
-      Mauszeiger-Hinweisen im Dunkelmodus (1.1.0 brachte die Versionsanzeige, die zweispaltige
-      Profilseite und das automatische Aktualisieren, 1.0.0 war das erste Release mit
-      Anwendungssymbol und bündigen Ticketzeilen).
+      ausdrückliche Ansage. 1.3.0 brachte die Asana-Verbindung als zweite Zeitquelle, 1.2.0 den
+      Monatsexport als CSV auf der Profilseite, 1.1.1 lesbare Mauszeiger-Hinweise im Dunkelmodus,
+      1.1.0 die Versionsanzeige, die zweispaltige Profilseite und das automatische Aktualisieren;
+      1.0.0 war das erste Release mit Anwendungssymbol und bündigen Ticketzeilen.
     -->
     <Version>1.3.0</Version>
     <Product>Hora</Product>

@@ -457,6 +457,111 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Abschnitt EXPORT: Der gewählte Monat wird beim Klick frisch aus Jira geholt,
+                         nicht aus dem Stand der Übersicht — die zeigt einen anderen Zeitraum. -->
+                    <TextBlock Text="EXPORT" Style="{StaticResource SectionLabel}" Margin="4,0,0,5"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                        <StackPanel>
+
+                            <!-- Schrittschalter in Monatsschritten. Vorwärts endet beim laufenden
+                                 Monat; der Pfeil wird dort blass und nimmt keinen Klick mehr an. -->
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Monat" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="Zeitraum der Datei" Style="{StaticResource SettingsSubLabel}"/>
+                                    </StackPanel>
+                                    <Border Style="{StaticResource StepperFrame}" Grid.Column="1" HorizontalAlignment="Right">
+                                        <StackPanel Orientation="Horizontal">
+                                            <!-- Dieselben selbst gezeichneten Pfeile wie in der Kopfzeile
+                                                 der Übersicht: Montserrat kennt die Pfeilzeichen nicht. -->
+                                            <Button Style="{StaticResource NavArrowButton}"
+                                                    Command="{Binding MoveExportMonthBackCommand}"
+                                                    ToolTip="Einen Monat zurück">
+                                                <Path Data="M7,0 L2,5 L7,10 M2,5 L12,5"
+                                                      Stroke="{DynamicResource InkBrush}"
+                                                      StrokeThickness="1.6"
+                                                      Stretch="None"/>
+                                            </Button>
+                                            <TextBlock Text="{Binding ExportMonthLabel}"
+                                                       FontWeight="SemiBold"
+                                                       MinWidth="118"
+                                                       TextAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                            <Button Style="{StaticResource NavArrowButton}"
+                                                    Command="{Binding MoveExportMonthForwardCommand}"
+                                                    ToolTip="Einen Monat vor">
+                                                <Path Data="M7,0 L12,5 L7,10 M12,5 L2,5"
+                                                      Stroke="{DynamicResource InkBrush}"
+                                                      StrokeThickness="1.6"
+                                                      Stretch="None"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Tickets aufschlüsseln" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="Unter jedem Tag seine Tickets" Style="{StaticResource SettingsSubLabel}"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="{Binding IncludeIssueRows}"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Soll und Differenz" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="Zwei Spalten je Tag" Style="{StaticResource SettingsSubLabel}"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="{Binding IncludeTargets}"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Die Unterzeile ist die Statusmeldung des letzten Versuchs: Erfolg,
+                                 leerer Monat oder Fehler. Vor dem ersten Export steht dort der Hinweis
+                                 auf das Dateiformat. -->
+                            <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="CSV-Datei erzeugen" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding ExportStatusText}"
+                                                   Style="{StaticResource SettingsSubLabel}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Content="{Binding ExportButtonText}"
+                                            Style="{StaticResource GhostButton}"
+                                            Command="{Binding ExportCommand}"
+                                            MinWidth="86"
+                                            VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+                    </Border>
+
                     <!-- Abschnitt ÜBER HORA: eigener Abschnitt und nicht unter JIRA, weil die Version
                          die App betrifft und nicht die angebundene Jira-Instanz. -->
                     <TextBlock Text="ÜBER HORA" Style="{StaticResource SectionLabel}" Margin="4,0,0,5"/>

@@ -1,4 +1,4 @@
-<UserControl x:Class="Hora.App.Views.WeekView"
+﻿<UserControl x:Class="Hora.App.Views.WeekView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:Hora.App.Controls">
@@ -94,13 +94,12 @@
                                                    Margin="8,1,0,0"/>
                                     </StackPanel>
 
-                                    <!-- Balken gegen das Tagessoll; am Wochenende gegen den größten
-                                         Tageswert der Woche. Beides rechnet WeekDayRow.BarRatio aus. -->
-                                    <ProgressBar Grid.Column="2"
-                                                 Style="{StaticResource RatioBar}"
-                                                 Value="{Binding BarRatio, Mode=OneWay}"
-                                                 VerticalAlignment="Center"
-                                                 Margin="0,0,16,0"/>
+                                    <!-- Balken gegen das Tagessoll: grün bis dorthin, orange für die
+                                         Mehrzeit, rot ab der zehnten Stunde. Rechnet WeekDayRow.Segments aus. -->
+                                    <controls:SegmentedRatioBar Grid.Column="2"
+                                                                Segments="{Binding Segments, Mode=OneWay}"
+                                                                VerticalAlignment="Center"
+                                                                Margin="0,0,16,0"/>
 
                                     <TextBlock Grid.Column="3"
                                                Text="{Binding TotalText}"

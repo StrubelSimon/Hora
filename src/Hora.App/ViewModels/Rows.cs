@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Hora.App.Services;
 using Hora.Core.Worklogs;
 
@@ -110,20 +110,22 @@ public sealed record WeekDayRow(
     bool IsToday,
     string DayName,
     string DateText,
-    double BarRatio)
+    BarSegments Segments)
 {
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
 
     /// <summary>
-    /// <paramref name="dailyTarget"/> ist die Sollzeit dieses einen Wochentags; <paramref name="weekMaxTotal"/>
-    /// die größte Tagessumme der ganzen Woche. Ist das Tagessoll null (typischerweise am Wochenende),
-    /// bemisst sich der Balken stattdessen am Wochenmaximum (Abschnitt 3.5 der Gestaltungsvorgaben).
+    /// <paramref name="dailyTarget"/> ist die Sollzeit dieses einen Wochentags. Sie trennt den
+    /// grünen vom orangen Abschnitt des Balkens; rot wird alles jenseits der Zehnstundengrenze
+    /// (Abschnitt 3.5 der Gestaltungsvorgaben). Ist das Tagessoll null – typischerweise am
+    /// Wochenende –, ist die gesamte Buchung Mehrzeit und damit orange. Früher bemaß sich der
+    /// Balken an solchen Tagen am größten Tageswert der Woche und stand grün da; das verschwieg,
+    /// dass es sich um Arbeit außerhalb des Solls handelt.
     /// </summary>
     public static WeekDayRow From(
         DaySummary day,
         DateOnly today,
         TimeSpan dailyTarget,
-        TimeSpan weekMaxTotal,
         DurationFormat format = DurationFormat.HoursMinutes) => new(
         day.Date,
         WeekCalendar.ShortDayLabel(day.Date),
@@ -132,19 +134,7 @@ public sealed record WeekDayRow(
         day.Date == today,
         German.DateTimeFormat.GetDayName(day.Date.DayOfWeek),
         day.Date.ToString("dd.MM.", CultureInfo.InvariantCulture),
-        BarRatioFor(day.Total, dailyTarget, weekMaxTotal));
-
-    private static double BarRatioFor(TimeSpan total, TimeSpan dailyTarget, TimeSpan weekMaxTotal)
-    {
-        if (dailyTarget > TimeSpan.Zero)
-        {
-            return Math.Clamp(total.TotalHours / dailyTarget.TotalHours, 0.0, 1.0);
-        }
-
-        return weekMaxTotal > TimeSpan.Zero
-            ? Math.Clamp(total.TotalHours / weekMaxTotal.TotalHours, 0.0, 1.0)
-            : 0.0;
-    }
+        BarSegments.For(day.Total, dailyTarget, WorkSchedule.DailyLimit));
 }
 
 /// <summary>Eine Tageszelle im Kalendergitter der Monatsansicht.</summary>
@@ -152,7 +142,7 @@ public sealed record MonthCellRow(
     DateOnly Date,
     string DayNumber,
     string TotalText,
-    double BarRatio,
+    BarSegments Segments,
     bool IsToday,
     bool IsInMonth,
     bool HasEntries,
@@ -179,15 +169,12 @@ public sealed record MonthCellRow(
         DurationFormat format = DurationFormat.HoursMinutes)
     {
         var dailyTarget = schedule.HoursFor(day.Date.DayOfWeek);
-        var ratio = dailyTarget > TimeSpan.Zero
-            ? Math.Clamp(day.Total.TotalHours / dailyTarget.TotalHours, 0.0, 1.0)
-            : 0.0;
 
         return new MonthCellRow(
             day.Date,
             day.Date.Day.ToString(CultureInfo.InvariantCulture),
             day.Entries.Count == 0 ? "–" : DurationFormatter.Format(day.Total, format),
-            ratio,
+            BarSegments.For(day.Total, dailyTarget, WorkSchedule.DailyLimit),
             day.Date == today,
             day.Date.Year == monthAnchor.Year && day.Date.Month == monthAnchor.Month,
             day.Entries.Count > 0,

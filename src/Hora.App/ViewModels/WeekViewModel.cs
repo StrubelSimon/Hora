@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Hora.App.Services;
@@ -34,11 +34,6 @@ public partial class WeekViewModel : ObservableObject
 
     public void Show(WeekSummary summary, IReadOnlyList<IssueTotal> issueTotals, DateOnly today)
     {
-        // Für Tage ohne Sollzeit (Wochenende) bemisst sich der Balken am größten Tageswert der Woche.
-        var weekMaxTotal = summary.Days.Count == 0
-            ? TimeSpan.Zero
-            : summary.Days.Max(day => day.Total);
-
         Days.Clear();
         foreach (var day in summary.Days)
         {
@@ -48,7 +43,7 @@ public partial class WeekViewModel : ObservableObject
             }
 
             var dailyTarget = _schedule.HoursFor(day.Date.DayOfWeek);
-            Days.Add(WeekDayRow.From(day, today, dailyTarget, weekMaxTotal, DurationFormat));
+            Days.Add(WeekDayRow.From(day, today, dailyTarget, DurationFormat));
         }
 
         // Der Balken je Ticket bemisst sich am größten Eintrag des Zeitraums (Abschnitt 3.7).

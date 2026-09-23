@@ -1,4 +1,4 @@
-using Hora.App.Tests.TestDoubles;
+﻿using Hora.App.Tests.TestDoubles;
 using Hora.App.ViewModels;
 using Hora.Core.Jira.Models;
 using Hora.Core.Storage;
@@ -155,7 +155,7 @@ public class ProfileWorkdayTests
 
         var stats = PeriodStats.For(TimeSpan.FromHours(3), target);
         Assert.Equal("–", stats.PercentText);
-        Assert.Equal(0, stats.BarRatio);
+        Assert.Equal(0, stats.Segments.TargetShare);
         Assert.Equal("+3h", stats.DifferenceText);
     }
 

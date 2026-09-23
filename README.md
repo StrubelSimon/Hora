@@ -1,8 +1,9 @@
 # Hora
 
-Hora zeigt die eigenen Zeitbuchungen (Worklogs) aus Jira Cloud pro **Tag**, pro **Woche** und pro
-**Monat** an – mit Summen, Sollstunden, Differenz und Fortschritt sowie Zwischensummen pro Ticket.
-Native Windows-App (WPF, .NET 8), heller und dunkler Modus – wahlweise dem Windows-Modus folgend.
+Hora zeigt die eigenen Zeitbuchungen (Worklogs) aus Jira Cloud – und, wenn verbunden, zusätzlich aus
+Asana – pro **Tag**, pro **Woche** und pro **Monat** an, mit Summen, Sollstunden, Differenz und
+Fortschritt sowie Zwischensummen pro Ticket. Native Windows-App (WPF, .NET 8), heller und dunkler
+Modus – wahlweise dem Windows-Modus folgend.
 
 ## Für Nutzerinnen und Nutzer
 
@@ -19,7 +20,8 @@ Native Windows-App (WPF, .NET 8), heller und dunkler Modus – wahlweise dem Win
    - Mit `◄` und `►` blättern: im Tagesmodus um einen Tag, im Wochenmodus um sieben Tage, im
      Monatsmodus um einen Monat.
    - Der Segmentschalter „Monat | Woche | Tag“ rechts oben wechselt die Ansicht.
-   - „Heute“ springt zurück auf den aktuellen Tag, „Aktualisieren“ holt die Buchungen neu von Jira.
+   - „Heute“ springt zurück auf den aktuellen Tag, „Aktualisieren“ holt die Buchungen neu von Jira
+     und, falls verbunden, von Asana.
    - Der grüne Kreis mit den Initialen ganz rechts öffnet die **Profilseite** (siehe unten).
      Abgemeldet wird dort.
 4. Klick auf einen Ticket-Schlüssel öffnet das Ticket im Browser. Jedes Ticket hat eine feste
@@ -30,7 +32,7 @@ Native Windows-App (WPF, .NET 8), heller und dunkler Modus – wahlweise dem Win
 
 | Ansicht | Inhalt |
 |---|---|
-| **Tag** | Eine Zeile je Buchung: Start bis Ende, Ticket, Titel, Dauer. Ein vorhandener Kommentar steht als graue Unterzeile darunter. Lange Texte sind abgeschnitten; der Mauszeiger zeigt den vollen Text. |
+| **Tag** | Eine Zeile je Buchung: Ticket, Titel, Dauer – eine Uhrzeit zeigt keine Zeile mehr, die Spalte wurde auf Wunsch des Auftraggebers entfernt. Ein vorhandener Kommentar steht als graue Unterzeile darunter. Lange Texte sind abgeschnitten; der Mauszeiger zeigt den vollen Text. Gibt es an diesem Tag Asana-Buchungen, stehen sie in einem eigenen Block unter den Jira-Buchungen: Asana kennt nur einen Tag und eine Dauer, keine Uhrzeit. |
 | **Woche** | Sieben Tageszeilen mit Wochentag, Datum, Fortschrittsbalken gegen das Tagessoll und Tagessumme. Der heutige Tag ist fett und trägt links einen grünen Streifen. Ein Klick auf eine Zeile wechselt in die Tagesansicht dieses Tages. |
 | **Monat** | Kalendergitter: links die Kalenderwoche mit Wochensumme, dann die sieben Wochentage. Jede Zelle zeigt Tageszahl, Tagessumme und einen schmalen Balken gegen das Tagessoll. Der heutige Tag ist grün umrandet, Tage außerhalb des Monats sind blass und nicht anklickbar. Ein Klick auf eine Zelle wechselt in die Tagesansicht dieses Tages. |
 
@@ -48,7 +50,7 @@ Ein Klick auf den Avatar rechts oben ersetzt die Übersicht durch die Profilseit
 links oben und „Fertig“ rechts oben führen zurück; die Übersicht steht danach unverändert da, ohne
 neuen Abruf bei Jira.
 
-Oben stehen Name, E-Mail-Adresse und – falls eingetragen – die Rolle als Abzeichen. Darunter vier
+Oben stehen Name, E-Mail-Adresse und – falls eingetragen – die Rolle als Abzeichen. Darunter fünf
 Abschnitte:
 
 | Abschnitt | Einstellung | Wirkung |
@@ -61,7 +63,9 @@ Abschnitte:
 | | Erinnerung bei fehlender Buchung | merkt sich nur die Wahl, siehe unten |
 | **JIRA** | Instanz | die eigene Jira-Adresse; ein Klick öffnet sie im Browser |
 | | Letzte Synchronisation | Zeitpunkt des letzten erfolgreichen Abrufs, z. B. „17.09.2026, 09:12“. Gab es noch keinen: „–“ |
-| **ÜBER HORA** | Version | die Version der laufenden Fassung, z. B. „1.1.0“ – nützlich, wenn es um einen Fehler geht |
+| **ASANA** | Verbindung | Personal Access Token und Workspace. „Verbinden“ öffnet ein kleines Fenster; „Trennen“ fragt zurück und lässt die Jira-Anmeldung stehen |
+| | Letzte Synchronisation | Zeitpunkt des letzten erfolgreichen Asana-Abrufs |
+| **ÜBER HORA** | Version | die Version der laufenden Fassung, z. B. „1.3.0“ – nützlich, wenn es um einen Fehler geht |
 
 Unten links steht „Abmelden“. Davor fragt die App nach; erst nach „Ja“ wird der gespeicherte Token
 gelöscht. Vorausgewählt ist „Nein“, ein Fehlklick kostet also nichts.
@@ -77,6 +81,23 @@ Zwei Einschränkungen, die man kennen sollte:
 - Die **Erinnerung** merkt sich ausschließlich die Wahl. Eine tatsächliche Benachrichtigung baut die
   App bewusst **nicht**: Sie liefe ohnehin nur, solange Hora offen ist. Die Unterzeile „Werktags um
   17:30 Uhr“ beschreibt, was eine spätere Erinnerung täte.
+
+### Asana verbinden
+
+- Asana ist **zusätzlich**; angemeldet wird man weiterhin bei Jira.
+- Token anlegen unter <https://app.asana.com/0/my-apps>. Eine E-Mail wird nicht abgefragt – Asana
+  liefert sie zum Token.
+- „Server“ heißt bei Asana **Workspace**. Gehört man zu mehreren, wird einer gewählt.
+- Zeiterfassung gibt es erst ab Asana Business. Auf Starter oder Free meldet Hora „Dieser
+  Asana-Tarif enthält keine Zeiterfassung.“
+- Asana-Einträge tragen **keine Uhrzeit**, nur einen Tag und eine Dauer. In der Tagesansicht stehen
+  sie deshalb in einem eigenen Block unter den Jira-Buchungen, mit der Dauer statt einer Zeitspanne.
+- Als Titel zeigt Hora den Namen der Asana-Aufgabe, wenn die Buchung ihn mitbringt. Fehlt er, stehen
+  dort die Kategorien der Buchung, und fehlen auch die, der Projektname.
+- Das Abzeichen zeigt den **Asana-Projektnamen**; „PRO TICKET“ gruppiert entsprechend pro Projekt.
+- Summen, Sollstunden und Differenz rechnen über **beide** Quellen. Wer dieselbe Stunde in Jira und
+  Asana bucht, sieht sie zweimal – Hora rechnet, es interpretiert nicht.
+- Fällt Asana aus, bleiben die Jira-Zahlen stehen; oben erscheint eine gelbe Warnzeile.
 
 ### Zeitformat
 
@@ -157,7 +178,8 @@ Beispiel für `%LOCALAPPDATA%\Hora\settings.json`:
   "startView": "Day",
   "timeFormat": "HoursMinutes",
   "reminderEnabled": false,
-  "lastSyncAt": null
+  "lastSyncAt": null,
+  "asanaLastSyncAt": null
 }
 ```
 
@@ -178,11 +200,14 @@ Beispiel für `%LOCALAPPDATA%\Hora\settings.json`:
   nicht. Standard `false`.
 - `lastSyncAt`: Zeitpunkt des letzten erfolgreichen Abrufs, von der App selbst geschrieben. `null`,
   solange es keinen gab.
+- `asanaLastSyncAt`: Zeitpunkt des letzten erfolgreichen Asana-Abrufs, von der App selbst
+  geschrieben. `null`, solange es keinen gab oder keine Verbindung besteht.
 - `baseUrl` und `email` belegen nur das Login-Formular vor; jede erfolgreiche Anmeldung
   überschreibt diese beiden Werte mit dem, was im Formular stand.
 
-Die fünf zuletzt genannten Felder kamen mit der Profilseite dazu. Eine ältere `settings.json` ohne
-sie wird weiterhin gelesen; die fehlenden Felder bekommen dann ihre Standardwerte.
+Die fünf Felder `role` bis `lastSyncAt` kamen mit der Profilseite dazu, `asanaLastSyncAt` mit der
+Asana-Verbindung. Eine ältere `settings.json` ohne sie wird weiterhin gelesen; die fehlenden Felder
+bekommen dann ihre Standardwerte.
 
 ### Dateien der App
 
@@ -191,6 +216,7 @@ Alle Dateien liegen unter `%LOCALAPPDATA%\Hora\`:
 | Datei | Inhalt |
 |---|---|
 | `credentials.dat` | verschlüsselte Zugangsdaten (nur bei „Angemeldet bleiben“) |
+| `asana.dat` | verschlüsselte Asana-Verbindung (Token und gewählter Workspace); entsteht erst beim Verbinden |
 | `settings.json` | Jira-URL, E-Mail, Sollstunden (`schedule`), Design (`theme`) und die Einstellungen der Profilseite |
 | `hora.log` | Fehlerprotokoll, hilfreich bei Supportfragen. Enthält niemals den Token. |
 
@@ -237,7 +263,8 @@ Begonnen wurde bei 1.0.0 (erstes Release mit Anwendungssymbol und bündigen Tick
 
 Projektstruktur:
 
-- `src/Hora.Core`: Jira-Client (REST API v3), Aggregation, Sollstunden, Speicher, Logger. Keine UI.
+- `src/Hora.Core`: Jira-Client (REST API v3) und Asana-Client, Aggregation, Sollstunden, Speicher,
+  Logger. Keine UI.
 - `src/Hora.App`: WPF-Oberfläche, MVVM mit CommunityToolkit.Mvvm.
 - `tests/Hora.Core.Tests`, `tests/Hora.App.Tests`: xUnit.
 - `docs/superpowers/specs`: Design-Spezifikationen. `docs/superpowers/plans`: Implementierungspläne.

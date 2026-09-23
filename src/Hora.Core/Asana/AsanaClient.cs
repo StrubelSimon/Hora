@@ -20,13 +20,19 @@ public sealed class AsanaClient : IAsanaClient
     private const int MaxPages = 50;
 
     /// <summary>
-    /// Der gesicherte Feldsatz aus Abschnitt 3.1 der Spezifikation. `task.name` und
-    /// `task.permalink_url` stehen bewusst NICHT darin: Der Listen-Endpunkt liefert laut
-    /// OpenAPI-Spezifikation TimeTrackingEntryCompact, das keinen Task führt. Bestätigt die Probe
-    /// aus Task 1 des Umsetzungsplans das Gegenteil, werden sie hier ergänzt — das Modell liest
-    /// sie bereits.
+    /// Die Felder, die der Listenabruf mitbringen soll.
     /// </summary>
-    private const string TimeEntryFields = "duration_minutes,entered_on,attributable_to.name,categories.name,created_by";
+    /// <remarks>
+    /// Asanas OpenAPI-Spezifikation führt für diesen Endpunkt TimeTrackingEntryCompact, und das
+    /// kennt keinen Task — `task.name` und `task.permalink_url` standen deshalb zunächst nicht hier.
+    /// Eine Probe gegen die echte API hat das widerlegt: Über opt_fields kommen beide zuverlässig
+    /// mit. Und sie sind nicht bloß Beiwerk, sondern das Tragende. Bei 36 Einträgen eines echten
+    /// Workspace trugen alle 36 einen Task-Namen und einen Permalink, aber nur 3 einen Projektnamen
+    /// und kein einziger eine Kategorie. Ohne diese beiden Felder bliebe die Titelspalte also fast
+    /// immer leer.
+    /// </remarks>
+    private const string TimeEntryFields =
+        "duration_minutes,entered_on,attributable_to.name,categories.name,created_by,task.name,task.permalink_url";
 
     private readonly HttpClient _http;
 

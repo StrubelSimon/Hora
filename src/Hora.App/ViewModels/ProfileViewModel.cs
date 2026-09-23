@@ -86,10 +86,9 @@ public partial class ProfileViewModel : ObservableObject
         _targetHours = _schedule.GetWorkdayHours();
 
         _asanaCredentialStore = asanaCredentialStore;
-        _isAsanaConnected = asanaCredentialStore?.Load() is not null;
-        AsanaLastSyncText = settings.AsanaLastSyncAt is { } asanaSync
-            ? asanaSync.ToString(LastSyncFormat, CultureInfo.InvariantCulture)
-            : NoLastSyncText;
+        _asanaConnection = asanaCredentialStore?.Load();
+        _isAsanaConnected = _asanaConnection is not null;
+        AsanaLastSyncText = FormatLastSync(settings.AsanaLastSyncAt);
 
         if (_themeSwitcher is not null)
         {
@@ -142,15 +141,27 @@ public partial class ProfileViewModel : ObservableObject
     /// <summary>Nutzer will Asana verbinden; die Hülle öffnet das Fenster.</summary>
     public event Action? AsanaConnectRequested;
 
-    /// <summary>Verbindung wurde hergestellt oder getrennt; die Hülle wechselt den Steckplatz.</summary>
+    /// <summary>
+    /// Die Verbindung hat sich <em>tatsächlich</em> geändert; die Hülle wechselt den Steckplatz und
+    /// holt die Buchungen neu. Wird bewusst nicht gemeldet, wenn alles beim Alten geblieben ist —
+    /// am Ereignis hängt ein voller Neuabruf, der die Übersicht zwischendurch leer laufen lässt.
+    /// </summary>
     public event Action? AsanaConnectionChanged;
+
+    /// <summary>
+    /// Der zuletzt gelesene Stand des Speichers. Bezugspunkt für die Frage, ob sich überhaupt etwas
+    /// geändert hat. <see cref="AsanaCredentials"/> ist ein Record, der Vergleich erfasst damit auch
+    /// einen gewechselten Workspace oder Token bei durchgehend bestehender Verbindung — beides holt
+    /// andere Zeiten und verdient denselben Neuabruf wie ein Verbinden.
+    /// </summary>
+    private AsanaCredentials? _asanaConnection;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AsanaStatusText))]
     [NotifyPropertyChangedFor(nameof(AsanaActionText))]
     private bool _isAsanaConnected;
 
-    public string AsanaStatusText => _asanaCredentialStore?.Load() is { } credentials
+    public string AsanaStatusText => _asanaConnection is { } credentials
         ? $"{credentials.UserName} · {credentials.WorkspaceName}"
         : "Nicht verbunden";
 
@@ -162,15 +173,58 @@ public partial class ProfileViewModel : ObservableObject
     private void ConnectAsana() => AsanaConnectRequested?.Invoke();
 
     /// <summary>
-    /// Wird von der Hülle gerufen, nachdem das Fenster erfolgreich verbunden hat. Liest den neuen
-    /// Stand aus dem Speicher und meldet ihn weiter.
+    /// Liest den Stand der Asana-Verbindung neu aus dem Speicher. Die Hülle ruft das nach jedem
+    /// Schließen des Verbinden-Fensters — auch nach einem Abbruch, denn ob dabei etwas entstanden
+    /// ist, weiß sie nicht.
     /// </summary>
+    /// <remarks>
+    /// Gemeldet wird nur ein echter Unterschied. Am Ereignis hängt ein erzwungener Neuabruf, der
+    /// den angezeigten Zeitraum zuvor verwirft: Meldete diese Stelle bedingungslos, liefe die
+    /// Übersicht jedes Mal leer und lüde neu, bloß weil jemand das Fenster geöffnet und wieder
+    /// abgebrochen hat.
+    /// </remarks>
     public void RefreshAsanaState()
     {
-        IsAsanaConnected = _asanaCredentialStore?.Load() is not null;
+        var stored = _asanaCredentialStore?.Load();
+        var changed = stored != _asanaConnection;
+        _asanaConnection = stored;
+
+        IsAsanaConnected = stored is not null;
+
+        // Auch ohne Wechsel des Verbindungszustands: Ein anderer Workspace ändert den Text, und
+        // IsAsanaConnected allein löst dann keine Benachrichtigung aus.
         OnPropertyChanged(nameof(AsanaStatusText));
-        AsanaConnectionChanged?.Invoke();
+
+        if (changed)
+        {
+            AsanaConnectionChanged?.Invoke();
+        }
+
+        // Erst nach dem Ereignis: Der davon angestoßene Neuabruf kann den Zeitpunkt bereits
+        // geschrieben haben, und dann soll die Zeile ihn zeigen und nicht den Stand von vorher.
+        UpdateAsanaLastSync();
     }
+
+    /// <summary>
+    /// Holt den Zeitpunkt des letzten Asana-Abrufs aus den Einstellungen nach. Ohne das bliebe die
+    /// Zeile auf dem Wert stehen, den sie beim Öffnen der Seite bekommen hat — wer von hier aus
+    /// verbindet, sähe dort dauerhaft „–“, obwohl längst abgerufen wurde.
+    /// </summary>
+    private void UpdateAsanaLastSync()
+    {
+        var text = FormatLastSync(_settingsStore.Load().AsanaLastSyncAt);
+        if (text == AsanaLastSyncText)
+        {
+            return;
+        }
+
+        AsanaLastSyncText = text;
+        OnPropertyChanged(nameof(AsanaLastSyncText));
+    }
+
+    private static string FormatLastSync(DateTimeOffset? moment) => moment is { } value
+        ? value.ToString(LastSyncFormat, CultureInfo.InvariantCulture)
+        : NoLastSyncText;
 
     /// <summary>Trennt die Verbindung. Die Rückfrage liegt — wie beim Abmelden — in der Ansicht.</summary>
     [RelayCommand]

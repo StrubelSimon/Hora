@@ -72,8 +72,10 @@ public partial class MainWindow : Window
         connectViewModel.Connected += window.Close;
         window.ShowDialog();
 
-        // Nach dem Schließen den Stand neu lesen — auch bei Abbruch, dann ändert sich nichts.
-        // Der Aufruf setzt zugleich den Asana-Steckplatz der Übersicht neu (AsanaConnectionChanged).
+        // Nach dem Schließen den Stand unbedingt neu lesen: Ob das Fenster verbunden oder nur
+        // abgebrochen hat, weiß die Ansicht nicht. Ob daraus ein Neuabruf folgt, entscheidet
+        // RefreshAsanaState anhand des tatsächlichen Unterschieds — diese Entscheidung gehört ins
+        // ViewModel und nicht hierher.
         profile.RefreshAsanaState();
     }
 

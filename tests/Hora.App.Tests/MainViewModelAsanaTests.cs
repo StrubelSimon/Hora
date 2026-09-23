@@ -268,6 +268,56 @@ public class MainViewModelAsanaTests
         Assert.Equal(callsBefore + 1, client.SearchCalls);
     }
 
+    /// <summary>
+    /// Der wichtigste Test dieser Runde: Wer das Verbinden-Fenster öffnet und abbricht, darf die
+    /// Übersicht nicht kosten. Die Hülle ruft RefreshAsanaState nach jedem ShowDialog — auch nach
+    /// einem Abbruch —, und am Ereignis hängt ein erzwungener Neuabruf, der den angezeigten
+    /// Zeitraum vorher verwirft. Ohne den Vergleich im ViewModel liefe die Seite hier leer und lüde
+    /// neu, für nichts.
+    /// </summary>
+    [Fact]
+    public async Task CancellingTheConnectWindowFetchesNothingAgain()
+    {
+        var asanaStore = new FakeAsanaCredentialStore
+        {
+            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+        };
+        var viewModel = BuildCounting(asanaStore, out var client);
+        await viewModel.StartAsync();
+
+        var profile = OpenProfile(viewModel);
+        var callsBefore = client.SearchCalls;
+
+        // Genau das tut die Hülle nach einem abgebrochenen Fenster: neu lesen, ohne dass sich am
+        // Speicher etwas geändert hätte.
+        profile.RefreshAsanaState();
+
+        Assert.Equal(callsBefore, client.SearchCalls);
+    }
+
+    /// <summary>
+    /// Ein gewechselter Workspace bei durchgehend bestehender Verbindung ist ebenfalls eine
+    /// Änderung: Dahinter stehen andere Zeiten, auch wenn „verbunden ja/nein" gleich bleibt.
+    /// </summary>
+    [Fact]
+    public async Task SwitchingTheWorkspaceFetchesAgain()
+    {
+        var asanaStore = new FakeAsanaCredentialStore
+        {
+            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+        };
+        var viewModel = BuildCounting(asanaStore, out var client);
+        await viewModel.StartAsync();
+
+        var profile = OpenProfile(viewModel);
+        var callsBefore = client.SearchCalls;
+
+        asanaStore.Stored = new AsanaCredentials("asana-token", "111", "Simon", "901", "Nebenprojekt");
+        profile.RefreshAsanaState();
+
+        Assert.Equal(callsBefore + 1, client.SearchCalls);
+    }
+
     /// <summary>Und nach dem Trennen verschwinden sie ebenso sofort, statt stehen zu bleiben.</summary>
     [Fact]
     public async Task DisconnectingAsanaFetchesAgainSoTheTimesDisappearAtOnce()

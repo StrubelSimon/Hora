@@ -48,7 +48,7 @@ Ein Klick auf den Avatar rechts oben ersetzt die Übersicht durch die Profilseit
 links oben und „Fertig“ rechts oben führen zurück; die Übersicht steht danach unverändert da, ohne
 neuen Abruf bei Jira.
 
-Oben stehen Name, E-Mail-Adresse und – falls eingetragen – die Rolle als Abzeichen. Darunter vier
+Oben stehen Name, E-Mail-Adresse und – falls eingetragen – die Rolle als Abzeichen. Darunter fünf
 Abschnitte:
 
 | Abschnitt | Einstellung | Wirkung |
@@ -61,7 +61,11 @@ Abschnitte:
 | | Erinnerung bei fehlender Buchung | merkt sich nur die Wahl, siehe unten |
 | **JIRA** | Instanz | die eigene Jira-Adresse; ein Klick öffnet sie im Browser |
 | | Letzte Synchronisation | Zeitpunkt des letzten erfolgreichen Abrufs, z. B. „17.09.2026, 09:12“. Gab es noch keinen: „–“ |
-| **ÜBER HORA** | Version | die Version der laufenden Fassung, z. B. „1.1.0“ – nützlich, wenn es um einen Fehler geht |
+| **EXPORT** | Monat | Schrittschalter in Monatsschritten; beginnt beim laufenden Monat, weiter vorwärts geht es nicht |
+| | Tickets aufschlüsseln | mit: unter jedem Tag seine Tickets; ohne: nur eine Zeile je Tag |
+| | Soll und Differenz | zwei zusätzliche Spalten je Tageszeile |
+| | CSV-Datei erzeugen | holt den Monat frisch aus Jira und fragt dann, wohin die Datei soll |
+| **ÜBER HORA** | Version | die Version der laufenden Fassung, z. B. „1.2.0“ – nützlich, wenn es um einen Fehler geht |
 
 Unten links steht „Abmelden“. Davor fragt die App nach; erst nach „Ja“ wird der gespeicherte Token
 gelöscht. Vorausgewählt ist „Nein“, ein Fehlklick kostet also nichts.
@@ -77,6 +81,52 @@ Zwei Einschränkungen, die man kennen sollte:
 - Die **Erinnerung** merkt sich ausschließlich die Wahl. Eine tatsächliche Benachrichtigung baut die
   App bewusst **nicht**: Sie liefe ohnehin nur, solange Hora offen ist. Die Unterzeile „Werktags um
   17:30 Uhr“ beschreibt, was eine spätere Erinnerung täte.
+
+### Der Monatsexport
+
+Der Abschnitt **EXPORT** der Profilseite legt einen Kalendermonat als CSV-Datei ab. Der Monat wird
+beim Klick auf „Export“ **frisch aus Jira geholt** – unabhängig davon, welchen Zeitraum die
+Übersicht gerade zeigt. Danach fragt der Windows-Dialog nach dem Ablageort; vorgeschlagen wird
+`Hora-Zeiten-2026-09.csv`. Enthält der Monat keine einzige Buchung, erscheint gar kein Dialog,
+sondern die Meldung „Keine Buchungen im September 2026.“ unter dem Knopf.
+
+So sieht die Datei aus:
+
+```
+Hora – Zeitexport
+Mitarbeiter;Simon Strubel
+Zeitraum;September 2026
+Erstellt am;22.09.2026 19:54
+Arbeitstage im Monat;22
+Tage mit Buchungen;7
+
+Datum;Tag;Ticket;Beschreibung;Stunden;Soll;Diff
+01.09.2026;Di;;;8,00;8,00;0,00
+;;"  HORA-12";Export-Funktion bauen;5,50;;
+;;"  HORA-7";Code Review Sprint 34;2,50;;
+02.09.2026;Mi;;;6,75;8,00;-1,25
+;;"  HORA-12";Export-Funktion bauen;6,75;;
+Summe;;;;47,50;176,00;-128,50
+```
+
+Die Tageszeile trägt Datum, Wochentag und die Tagessumme; darunter stehen eingerückt die Tickets,
+die diese Summe ausmachen. Mehrere Buchungen auf dasselbe Ticket am selben Tag werden zu **einer**
+Zeile zusammengefasst, sortiert nach Stunden absteigend.
+
+Was man dazu wissen sollte:
+
+- **Tage ohne Buchung bekommen keine Zeile.** Ihr Soll fehlt damit in der Tabelle – die Summenzeile
+  rechnet trotzdem das **volle Monatssoll** aller Arbeitstage, sonst sähe ein lückenhafter Monat
+  aus wie ein vollständiger. Die Spalte „Soll“ summiert sich deshalb absichtlich nicht auf den Wert
+  unten; der Kopf nennt dafür beide Zahlen („Arbeitstage im Monat“ gegen „Tage mit Buchungen“).
+- **Ein Samstag mit Buchung** steht mit Soll `0,00` da, seine Stunden zählen als positive Differenz.
+- **Stunden immer als Dezimalzahl mit Komma**, auch wenn im Profil „7h 45m“ eingestellt ist: Nur so
+  liest Excel eine Zahl und kann damit rechnen. Das Zeitformat des Profils betrifft die Anzeige in
+  der App, nicht die Datei.
+- **Semikolon als Trenner, UTF-8 mit BOM.** Damit öffnet deutsches Excel die Datei per Doppelklick
+  gleich in Spalten, und Umlaute stimmen.
+- Konnten einzelne Tickets nicht geladen werden, hängt die Meldung das an: „… gespeichert · 2
+  Ticket(s) konnten nicht geladen werden“. Die Datei ist dann unvollständig.
 
 ### Zeitformat
 
@@ -178,10 +228,13 @@ Beispiel für `%LOCALAPPDATA%\Hora\settings.json`:
   nicht. Standard `false`.
 - `lastSyncAt`: Zeitpunkt des letzten erfolgreichen Abrufs, von der App selbst geschrieben. `null`,
   solange es keinen gab.
+- `exportIncludeIssues` und `exportIncludeTargets`: die beiden Schalter des Export-Abschnitts.
+  Beide stehen standardmäßig auf `true`; eine Datei ohne diese Felder liefert also den
+  vollständigen Export.
 - `baseUrl` und `email` belegen nur das Login-Formular vor; jede erfolgreiche Anmeldung
   überschreibt diese beiden Werte mit dem, was im Formular stand.
 
-Die fünf zuletzt genannten Felder kamen mit der Profilseite dazu. Eine ältere `settings.json` ohne
+Die genannten Zusatzfelder kamen mit der Profilseite und dem Export dazu. Eine ältere `settings.json` ohne
 sie wird weiterhin gelesen; die fehlenden Felder bekommen dann ihre Standardwerte.
 
 ### Dateien der App
@@ -273,5 +326,5 @@ Eine tatsächliche Erinnerung (der Schalter merkt sich nur die Wahl), Bearbeiten
 Oberfläche (nur `settings.json`), **unterschiedliche** Sollstunden je Wochentag über die Oberfläche
 (welche Tage Arbeitstage sind, lässt sich dort wählen; wie viele Stunden ein einzelner Tag abweichend
 haben soll, nur in `settings.json`), Feiertage, Urlaub, Krankheit, Teilzeitmodelle mit wechselnden
-Wochen, Anlegen oder Ändern von Buchungen, Tempo Timesheets, Export, Jahresansicht, mehrere Konten,
+Wochen, Anlegen oder Ändern von Buchungen, Tempo Timesheets, Jahresansicht, mehrere Konten,
 Auto-Update, Jira Server/Data Center.

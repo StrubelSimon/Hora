@@ -43,6 +43,8 @@ internal sealed class FakeSettingsStore : ISettingsStore
         ReminderEnabled = settings.ReminderEnabled,
         RefreshIntervalMinutes = settings.RefreshIntervalMinutes,
         LastSyncAt = settings.LastSyncAt,
+        ExportIncludeIssues = settings.ExportIncludeIssues,
+        ExportIncludeTargets = settings.ExportIncludeTargets,
         Schedule = settings.Schedule is null
             ? null!
             : new WorkSchedule

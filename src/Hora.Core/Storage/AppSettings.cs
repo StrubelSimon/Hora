@@ -53,4 +53,15 @@ public sealed class AppSettings
 
     /// <summary>Zeitpunkt des letzten erfolgreichen Abrufs; null, solange es keinen gab.</summary>
     public DateTimeOffset? LastSyncAt { get; set; }
+
+    /// <summary>
+    /// Schalter „Tickets aufschlüsseln“ des Export-Abschnitts. Die Vorgabe steht wie bei
+    /// RefreshIntervalMinutes am Feld und nicht im Ladevorgang: Eine Datei aus der Zeit vor dem
+    /// Export kennt den Schlüssel nicht, und ohne die Vorgabe stünde dort das false eines bool —
+    /// ein Programmstand-Wechsel nähme dem Export also stillschweigend die Ticketzeilen.
+    /// </summary>
+    public bool ExportIncludeIssues { get; set; } = true;
+
+    /// <summary>Schalter „Soll und Differenz“ des Export-Abschnitts; Vorgabe aus demselben Grund an.</summary>
+    public bool ExportIncludeTargets { get; set; } = true;
 }

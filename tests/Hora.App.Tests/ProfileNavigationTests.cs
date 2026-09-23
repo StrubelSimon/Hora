@@ -20,7 +20,8 @@ public class ProfileNavigationTests
     private static readonly DateTimeOffset Now = new(2026, 9, 17, 9, 12, 0, TimeSpan.FromHours(2));
 
     private static (MainViewModel vm, FakeSettingsStore settings, FakeCredentialStore credentials, FakeThemeSwitcher theme) Create(
-        AppSettings? stored = null)
+        AppSettings? stored = null,
+        ISaveFilePicker? picker = null)
     {
         var settings = new FakeSettingsStore();
         if (stored is not null)
@@ -37,7 +38,8 @@ public class ProfileNavigationTests
             (_, _, _) => new FakeJiraClient(),
             () => Today,
             theme,
-            () => Now);
+            () => Now,
+            saveFilePicker: picker);
 
         return (vm, settings, credentials, theme);
     }
@@ -55,6 +57,22 @@ public class ProfileNavigationTests
 
         Assert.IsType<ProfileViewModel>(vm.CurrentScreen);
         Assert.Equal(0, credentials.DeleteCalls);
+    }
+
+    [Fact]
+    public async Task The_profile_page_is_handed_everything_the_export_needs()
+    {
+        // Der Abrufdienst der Übersicht, der Speichern-Dialog und die Uhr: Fehlt eines davon,
+        // steht der Export-Abschnitt stumm auf der Seite.
+        var (vm, _, _, _) = Create(picker: new FakeSaveFilePicker());
+        await vm.StartAsync();
+        var overview = Assert.IsType<OverviewViewModel>(vm.CurrentScreen);
+
+        overview.ShowProfileCommand.Execute(null);
+        var profile = Assert.IsType<ProfileViewModel>(vm.CurrentScreen);
+
+        Assert.True(profile.CanExport);
+        Assert.Equal("September 2026", profile.ExportMonthLabel);
     }
 
     [Fact]

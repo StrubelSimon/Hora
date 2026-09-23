@@ -1,8 +1,13 @@
 using System.Globalization;
+using System.IO;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Hora.App.Services;
+using Hora.Core.Export;
+using Hora.Core.Jira;
 using Hora.Core.Jira.Models;
+using Hora.Core.Logging;
 using Hora.Core.Storage;
 using Hora.Core.Worklogs;
 
@@ -26,6 +31,9 @@ public partial class ProfileViewModel : ObservableObject
 
     private const string NoLastSyncText = "–";
 
+    /// <summary>Feste Kultur für das Komma der Export-Meldung, wie im DurationFormatter.</summary>
+    private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
+
     private readonly ISettingsStore _settingsStore;
     private readonly IThemeSwitcher? _themeSwitcher;
 
@@ -35,16 +43,36 @@ public partial class ProfileViewModel : ObservableObject
 
     private readonly Action<AppTheme>? _themeChangedHandler;
 
+    // Der Export. Alle vier sind wahlfrei: Ohne sie ist der Abschnitt schlicht abgeschaltet, und
+    // die vorhandenen Tests der übrigen Abläufe bauen die Seite weiter mit vier Argumenten.
+    private readonly IWorklogService? _worklogs;
+    private readonly TimeZoneInfo _zone;
+    private readonly IAppLogger? _logger;
+    private readonly ISaveFilePicker? _saveFilePicker;
+
+    // Eigene Uhr, damit „der laufende Monat“ und der Zeitstempel im Kopf der Datei prüfbar sind.
+    private readonly Func<DateTimeOffset> _now;
+
     public ProfileViewModel(
         ISettingsStore settingsStore,
         JiraUser user,
         string baseUrl,
         WorkSchedule schedule,
-        IThemeSwitcher? themeSwitcher = null)
+        IThemeSwitcher? themeSwitcher = null,
+        IWorklogService? worklogs = null,
+        TimeZoneInfo? zone = null,
+        IAppLogger? logger = null,
+        ISaveFilePicker? saveFilePicker = null,
+        Func<DateTimeOffset>? now = null)
     {
         _settingsStore = settingsStore;
         _themeSwitcher = themeSwitcher;
         _schedule = schedule;
+        _worklogs = worklogs;
+        _zone = zone ?? TimeZoneInfo.Local;
+        _logger = logger;
+        _saveFilePicker = saveFilePicker;
+        _now = now ?? (() => DateTimeOffset.Now);
 
         var settings = settingsStore.Load();
 
@@ -65,6 +93,11 @@ public partial class ProfileViewModel : ObservableObject
         _durationFormat = DurationFormatter.Parse(settings.TimeFormat);
         _reminderEnabled = settings.ReminderEnabled;
         _refreshIntervalMinutes = RefreshIntervals.Parse(settings.RefreshIntervalMinutes);
+        _includeIssueRows = settings.ExportIncludeIssues;
+        _includeTargets = settings.ExportIncludeTargets;
+
+        // Der Export beginnt beim laufenden Monat; weiter als bis dorthin geht es nicht vorwärts.
+        _exportMonth = FirstDayOfCurrentMonth();
 
         // Welche Tage Arbeitstage sind, steht — wie jede andere Anfangsbelegung dieser Seite — in
         // den gespeicherten Einstellungen: Als Arbeitstag gilt jeder Tag mit einem Wert größer null.
@@ -415,6 +448,202 @@ public partial class ProfileViewModel : ObservableObject
         var settings = _settingsStore.Load();
         settings.ReminderEnabled = value;
         _settingsStore.Save(settings);
+    }
+
+    // ===================== Export =====================
+
+    /// <summary>
+    /// Ohne Kennung zeigt Excel Umlaute als Kauderwelsch — der einzige Grund, warum hier nicht die
+    /// schlichte UTF8-Kodierung steht.
+    /// </summary>
+    private static readonly Encoding Utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+
+    private DateOnly _exportMonth;
+
+    /// <summary>Erster Tag des gewählten Monats; der Schrittschalter bewegt ihn in Monatsschritten.</summary>
+    public DateOnly ExportMonth => _exportMonth;
+
+    public string ExportMonthLabel => WeekCalendar.MonthLabel(_exportMonth);
+
+    /// <summary>Vorschlag des Speichern-Dialogs, sortierbar nach Jahr und Monat.</summary>
+    public string SuggestedFileName => $"Hora-Zeiten-{_exportMonth:yyyy-MM}.csv";
+
+    /// <summary>Ein künftiger Monat hat nichts zu exportieren; vorwärts endet beim laufenden.</summary>
+    public bool CanMoveExportMonthForward => _exportMonth < FirstDayOfCurrentMonth();
+
+    /// <summary>Ohne Abrufdienst oder Speichern-Dialog bleibt der Abschnitt stumm geschaltet.</summary>
+    public bool CanExport => _worklogs is not null && _saveFilePicker is not null && !IsExporting;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanExport))]
+    [NotifyPropertyChangedFor(nameof(ExportButtonText))]
+    [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
+    private bool _isExporting;
+
+    /// <summary>
+    /// Beschriftung des Knopfes. Sie liegt hier und nicht als Auslöser in der Ansicht, weil die
+    /// Seite ihre Texte durchweg selbst bildet — wie RefreshIntervalText und WorkdayCountText.
+    /// </summary>
+    public string ExportButtonText => IsExporting ? "Lädt …" : "Export";
+
+    /// <summary>Die letzte Meldung unter dem Knopf; leer, solange nichts exportiert wurde.</summary>
+    [ObservableProperty]
+    private string _exportStatusText = string.Empty;
+
+    [RelayCommand]
+    private void MoveExportMonthBack() => ApplyExportMonth(_exportMonth.AddMonths(-1));
+
+    [RelayCommand(CanExecute = nameof(CanMoveExportMonthForward))]
+    private void MoveExportMonthForward() => ApplyExportMonth(_exportMonth.AddMonths(1));
+
+    private void ApplyExportMonth(DateOnly month)
+    {
+        _exportMonth = month;
+        OnPropertyChanged(nameof(ExportMonth));
+        OnPropertyChanged(nameof(ExportMonthLabel));
+        OnPropertyChanged(nameof(SuggestedFileName));
+        OnPropertyChanged(nameof(CanMoveExportMonthForward));
+        MoveExportMonthForwardCommand.NotifyCanExecuteChanged();
+
+        // Die alte Meldung gehörte zum alten Monat und wäre neben dem neuen irreführend.
+        ExportStatusText = string.Empty;
+    }
+
+    private bool _includeIssueRows;
+
+    /// <summary>Tickets unter jedem Tag aufschlüsseln.</summary>
+    public bool IncludeIssueRows
+    {
+        get => _includeIssueRows;
+        set
+        {
+            if (SetProperty(ref _includeIssueRows, value))
+            {
+                SaveExportOptions();
+            }
+        }
+    }
+
+    private bool _includeTargets;
+
+    /// <summary>Die Spalten „Soll“ und „Diff“ mitschreiben.</summary>
+    public bool IncludeTargets
+    {
+        get => _includeTargets;
+        set
+        {
+            if (SetProperty(ref _includeTargets, value))
+            {
+                SaveExportOptions();
+            }
+        }
+    }
+
+    private void SaveExportOptions()
+    {
+        var settings = _settingsStore.Load();
+        settings.ExportIncludeIssues = _includeIssueRows;
+        settings.ExportIncludeTargets = _includeTargets;
+        _settingsStore.Save(settings);
+    }
+
+    /// <summary>
+    /// Holt den gewählten Monat, baut die Datei und fragt erst dann, wohin sie soll. Die
+    /// Reihenfolge ist Absicht: Wo eine leere Datei hinsoll, muss niemand beantworten.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanExport))]
+    private async Task ExportAsync()
+    {
+        if (_worklogs is null || _saveFilePicker is null)
+        {
+            return;
+        }
+
+        IsExporting = true;
+        ExportStatusText = string.Empty;
+
+        try
+        {
+            var from = _exportMonth;
+            var to = _exportMonth.AddDays(DateTime.DaysInMonth(_exportMonth.Year, _exportMonth.Month) - 1);
+
+            WorklogFetchResult fetched;
+            try
+            {
+                fetched = await _worklogs.GetEntriesAsync(from, to, CancellationToken.None);
+            }
+            catch (JiraException ex)
+            {
+                _logger?.Error($"Export von {ExportMonthLabel} fehlgeschlagen", ex);
+                ExportStatusText = $"Export fehlgeschlagen: {ex.Message}";
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"Export von {ExportMonthLabel} unerwartet fehlgeschlagen", ex);
+                ExportStatusText = "Export fehlgeschlagen. Einzelheiten stehen im Protokoll.";
+                return;
+            }
+
+            var export = MonthCsvBuilder.Build(
+                fetched.Entries,
+                _exportMonth,
+                _schedule,
+                _zone,
+                new MonthExportOptions(_includeIssueRows, _includeTargets),
+                DisplayName,
+                _now());
+
+            if (export.DayCount == 0)
+            {
+                ExportStatusText = $"Keine Buchungen im {ExportMonthLabel}.";
+                return;
+            }
+
+            var path = _saveFilePicker.PickPath(SuggestedFileName);
+            if (string.IsNullOrEmpty(path))
+            {
+                return; // Abgebrochen: Die Statuszeile bleibt, wie sie war.
+            }
+
+            try
+            {
+                await File.WriteAllTextAsync(path, export.Csv, Utf8WithBom);
+            }
+            catch (Exception ex)
+            {
+                // Der häufigste Fall ist die Datei, die gerade in Excel offen steht.
+                _logger?.Error($"Export nach '{path}' konnte nicht geschrieben werden", ex);
+                ExportStatusText = $"Die Datei konnte nicht geschrieben werden: {ex.Message}";
+                return;
+            }
+
+            ExportStatusText = BuildSuccessText(export.TotalHours, export.DayCount, fetched.FailedIssueKeys.Count);
+        }
+        finally
+        {
+            IsExporting = false;
+        }
+    }
+
+    /// <summary>
+    /// Nicht ladbare Tickets hängen an der Erfolgsmeldung: Eine unvollständige Datei darf nicht als
+    /// vollständige durchgehen.
+    /// </summary>
+    private static string BuildSuccessText(decimal totalHours, int dayCount, int failedIssueCount)
+    {
+        var days = dayCount == 1 ? "1 Tag" : $"{dayCount} Tagen";
+        var text = $"{totalHours.ToString("0.00", German)} h aus {days} gespeichert";
+
+        return failedIssueCount == 0
+            ? text
+            : $"{text} · {failedIssueCount} Ticket(s) konnten nicht geladen werden";
+    }
+
+    private DateOnly FirstDayOfCurrentMonth()
+    {
+        var today = DateOnly.FromDateTime(_now().DateTime);
+        return new DateOnly(today.Year, today.Month, 1);
     }
 
     // ===================== Navigation =====================

@@ -12,6 +12,14 @@ public static class WeekCalendar
     private static readonly string[] ShortDayNames =
         { "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa" };
 
+    // Index = Monatsnummer; Feld 0 bleibt leer, damit der Monat direkt als Index taugt.
+    private static readonly string[] MonthNames =
+    {
+        string.Empty,
+        "Januar", "Februar", "März", "April", "Mai", "Juni",
+        "Juli", "August", "September", "Oktober", "November", "Dezember",
+    };
+
     public static DateOnly StartOfWeek(DateOnly date)
     {
         // DayOfWeek zählt ab Sonntag = 0; wir wollen Montag = 0.
@@ -27,6 +35,13 @@ public static class WeekCalendar
 
     public static string ShortDayLabel(DateOnly date) =>
         $"{ShortDayNames[(int)date.DayOfWeek]} {date.ToString("dd.MM.", CultureInfo.InvariantCulture)}";
+
+    /// <summary>Nur der Wochentag, zweibuchstabig („Mo“) — ohne Datum, für die Spalte des Exports.</summary>
+    public static string ShortDayName(DateOnly date) => ShortDayNames[(int)date.DayOfWeek];
+
+    /// <summary>Monat und Jahr, deutsch ausgeschrieben („September 2026“).</summary>
+    public static string MonthLabel(DateOnly anyDayInMonth) =>
+        $"{MonthNames[anyDayInMonth.Month]} {anyDayInMonth.Year}";
 
     public static string WeekLabel(DateOnly anyDayInWeek)
     {

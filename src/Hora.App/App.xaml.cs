@@ -78,7 +78,8 @@ public partial class App : Application
             () => DateOnly.FromDateTime(DateTime.Now),
             themeManager,
             now: null,
-            refreshScheduler: new DispatcherRefreshScheduler(logger));
+            refreshScheduler: new DispatcherRefreshScheduler(logger),
+            saveFilePicker: new SaveFileDialogPicker());
 
         var window = new MainWindow { DataContext = mainViewModel };
         window.Show();

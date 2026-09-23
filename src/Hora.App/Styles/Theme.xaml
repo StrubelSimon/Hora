@@ -155,6 +155,14 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/>
                         </Trigger>
+                        <!-- Abgeschaltet blass, wie beim GhostButton. Gebraucht vom Monatswähler des
+                             Exports: Vorwärts endet beim laufenden Monat, und ein Pfeil, der gleich
+                             aussieht und doch nichts tut, wäre die schlechtere Antwort darauf. Die
+                             Blätterpfeile der Übersicht sind nie abgeschaltet — dort ändert sich nichts. -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.35"/>
+                            <Setter Property="Cursor" Value="Arrow"/>
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

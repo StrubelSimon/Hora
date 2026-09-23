@@ -1,6 +1,7 @@
-<UserControl x:Class="Hora.App.Views.OverviewView"
+﻿<UserControl x:Class="Hora.App.Views.OverviewView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Hora.App.Controls"
              xmlns:views="clr-namespace:Hora.App.Views">
 
     <!--
@@ -164,10 +165,11 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ProgressBar Style="{StaticResource RatioBar}"
-                                 Width="200"
-                                 Value="{Binding Stats.BarRatio, Mode=OneWay}"
-                                 VerticalAlignment="Center"/>
+                    <!-- In der Tagesansicht trägt dieser Balken die Zehnstundengrenze (rot); Woche und
+                         Monat kennen sie nicht, dort bleibt es bei Grün und Orange. -->
+                    <controls:SegmentedRatioBar Width="200"
+                                                Segments="{Binding Stats.Segments, Mode=OneWay}"
+                                                VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding Stats.PercentText}"
                                FontWeight="SemiBold"
                                MinWidth="54"

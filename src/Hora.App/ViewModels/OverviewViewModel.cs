@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Hora.App.Services;
@@ -440,7 +440,13 @@ public partial class OverviewViewModel : ObservableObject
         // ist das der Kalendermonat, nicht das mitgeladene sichtbare Rechteck (Task R3, Punkt 6).
         Stats = Mode switch
         {
-            ViewMode.Day => PeriodStats.For(day.Total, TargetCalculator.ForRange(_schedule, SelectedDate, SelectedDate), DurationFormat),
+            // Nur der Tag kennt die Zehnstundengrenze des Arbeitszeitgesetzes: Sie gilt je Tag, eine
+            // Woche mit 50 Stunden reißt sie nicht.
+            ViewMode.Day => PeriodStats.For(
+                day.Total,
+                TargetCalculator.ForRange(_schedule, SelectedDate, SelectedDate),
+                DurationFormat,
+                WorkSchedule.DailyLimit),
             ViewMode.Week => PeriodStats.For(week.Total, TargetCalculator.ForRange(_schedule, weekStart, weekEnd), DurationFormat),
             ViewMode.Month => PeriodStats.For(SumDuration(monthEntries), TargetCalculator.ForRange(_schedule, monthStart, monthEnd), DurationFormat),
             _ => PeriodStats.For(TimeSpan.Zero, TimeSpan.Zero, DurationFormat),

@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Hora.Core.Worklogs;
 
@@ -27,6 +27,13 @@ public sealed class WorkSchedule
         Thursday = 8,
         Friday = 8,
     };
+
+    /// <summary>
+    /// Höchstarbeitszeit eines Werktags nach § 3 ArbZG: zehn Stunden. Die Balken der Tages-,
+    /// Wochen- und Monatsansicht färben alles darüber rot ein — unabhängig vom eingetragenen
+    /// Tagessoll, denn die Grenze ist gesetzlich und nicht persönlich.
+    /// </summary>
+    public static readonly TimeSpan DailyLimit = TimeSpan.FromHours(10);
 
     /// <summary>Kleinster und größter Wert, den der Schrittschalter der Profilseite zulässt.</summary>
     public const double MinWeekdayHours = 0;

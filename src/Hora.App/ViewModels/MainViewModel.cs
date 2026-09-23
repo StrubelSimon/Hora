@@ -260,7 +260,19 @@ public partial class MainViewModel : ObservableObject
     {
         var profile = new ProfileViewModel(_settingsStore, user, baseUrl, schedule, _themeManager, _asanaCredentialStore);
 
-        profile.AsanaConnectionChanged += ApplyAsanaConnection;
+        // Der Steckplatz allein genügt hier nicht: Die Übersicht steht mit den Zeilen da, die sie
+        // vor dem Wechsel geholt hat. Ohne erzwungenen Neuabruf erschienen die Asana-Zeiten nach dem
+        // Verbinden erst beim nächsten Takt — und nach dem Trennen blieben sie ebenso lange stehen.
+        //
+        // Neu geladen wird ausdrücklich nur auf diesem Weg und nicht in ApplyAsanaConnection selbst:
+        // Jenes ruft auch ShowOverview beim Aufbau, und dort stößt RunInitialLoadAsync den ersten
+        // Abruf ohnehin an. Läge das Neuladen dort drin, liefe beim Start jedes Mal ein zweiter,
+        // überflüssiger Abruf.
+        profile.AsanaConnectionChanged += () =>
+        {
+            ApplyAsanaConnection();
+            _ = RunAsanaReloadAsync(overview);
+        };
         profile.AsanaConnectRequested += () => AsanaConnectRequested?.Invoke(profile);
 
         profile.CloseRequested += () =>
@@ -328,6 +340,29 @@ public partial class MainViewModel : ObservableObject
         {
             // LoadAsync fängt Jira-Fehler selbst ab; hier landen nur unerwartete Fehler.
             _logger.Error("Erstes Laden der Buchungen fehlgeschlagen", ex);
+        }
+    }
+
+    /// <summary>
+    /// Neuabruf, nachdem die Asana-Verbindung hergestellt oder getrennt wurde. Erzwungen, weil der
+    /// zwischengespeicherte Stand noch zur alten Verbindung gehört und ein gewöhnlicher Abruf ihn
+    /// als bereits geladen ansähe.
+    /// </summary>
+    /// <remarks>
+    /// Nicht abgewartet — das Ereignis ist ein <see cref="Action"/>, und die Profilseite soll nicht
+    /// stehen bleiben, während im Hintergrund geholt wird. Die Fehler fängt dieser Zweig trotzdem
+    /// ab: Ein nicht beobachteter Task verlöre sie sonst lautlos.
+    /// </remarks>
+    private async Task RunAsanaReloadAsync(OverviewViewModel overview)
+    {
+        try
+        {
+            await overview.LoadAsync(forceReload: true);
+        }
+        catch (Exception ex)
+        {
+            // LoadAsync fängt Jira-Fehler selbst ab; hier landen nur unerwartete Fehler.
+            _logger.Error("Neuladen nach Wechsel der Asana-Verbindung fehlgeschlagen", ex);
         }
     }
 

@@ -12,8 +12,14 @@ internal sealed class FakeJiraClient : IJiraClient
     public Task<JiraUser> GetMyselfAsync(CancellationToken cancellationToken) =>
         MyselfFailure is null ? Task.FromResult(User) : Task.FromException<JiraUser>(MyselfFailure);
 
-    public Task<IReadOnlyList<JiraIssue>> SearchIssuesWithWorklogsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<JiraIssue>>(Array.Empty<JiraIssue>());
+    /// <summary>Wie oft Buchungen geholt wurden. Hält fest, ob ein Abruf zu viel oder zu wenig lief.</summary>
+    public int SearchCalls { get; private set; }
+
+    public Task<IReadOnlyList<JiraIssue>> SearchIssuesWithWorklogsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken)
+    {
+        SearchCalls++;
+        return Task.FromResult<IReadOnlyList<JiraIssue>>(Array.Empty<JiraIssue>());
+    }
 
     public Task<IReadOnlyList<JiraWorklog>> GetWorklogsAsync(string issueKey, DateTimeOffset startedAfter, DateTimeOffset startedBefore, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<JiraWorklog>>(Array.Empty<JiraWorklog>());

@@ -11,8 +11,13 @@
                     verweist per DynamicResource darauf, sodass der Dunkelmodus jederzeit umschalten kann.
                 -->
                 <ResourceDictionary Source="Styles/Theme.xaml"/>
+                <!--
+                    BoolToVisibility steht seit dem Asana-Block in Theme.xaml selbst: Die dortigen
+                    Vorlagen brauchen ihn, und ein StaticResource-Verweis aus einer Vorlage heraus
+                    findet nur, was in derselben Sammlung steht. Über diese Verknüpfung bleibt er
+                    für alle Ansichten unverändert erreichbar.
+                -->
             </ResourceDictionary.MergedDictionaries>
-            <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

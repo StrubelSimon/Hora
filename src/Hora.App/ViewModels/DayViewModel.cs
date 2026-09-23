@@ -22,9 +22,20 @@ public partial class DayViewModel : ObservableObject
     /// </summary>
     public DurationFormat DurationFormat { get; set; }
 
+    /// <summary>Die Jira-Buchungen des Tages, chronologisch.</summary>
     public ObservableCollection<WorklogRow> Rows { get; } = new();
 
+    /// <summary>
+    /// Die Asana-Einträge des Tages. Ein eigener Block, weil sie keine Uhrzeit tragen und in der
+    /// chronologischen Liste nur eine Ordnung vortäuschten, die es nicht gibt.
+    /// </summary>
+    public ObservableCollection<WorklogRow> AsanaRows { get; } = new();
+
     public ObservableCollection<IssueTotalRow> IssueTotals { get; } = new();
+
+    /// <summary>Trägt der Tag Asana-Zeiten? Daran hängt der ganze Block samt Zwischenüberschrift.</summary>
+    [ObservableProperty]
+    private bool _hasAsanaRows;
 
     [ObservableProperty]
     private string _totalText = "0m";
@@ -35,10 +46,21 @@ public partial class DayViewModel : ObservableObject
     public void Show(DaySummary summary, IReadOnlyList<IssueTotal> issueTotals)
     {
         Rows.Clear();
+        AsanaRows.Clear();
         foreach (var entry in summary.Entries)
         {
-            Rows.Add(WorklogRow.From(entry, _zone, DurationFormat));
+            var row = WorklogRow.From(entry, _zone, DurationFormat);
+            if (entry.Source == WorklogSource.Asana)
+            {
+                AsanaRows.Add(row);
+            }
+            else
+            {
+                Rows.Add(row);
+            }
         }
+
+        HasAsanaRows = AsanaRows.Count > 0;
 
         // Der Balken je Ticket bemisst sich am größten Eintrag des Zeitraums (Abschnitt 3.7).
         var maxTotal = IssueTotalRow.MaxTotalOf(issueTotals);

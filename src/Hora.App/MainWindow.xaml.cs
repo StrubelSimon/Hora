@@ -2,14 +2,26 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Hora.App.ViewModels;
+using Hora.App.Views;
 
 namespace Hora.App;
 
 public partial class MainWindow : Window
 {
+    /// <summary>
+    /// Die Hülle, an deren Ereignis gerade gehorcht wird. Festgehalten, um die Anmeldung beim
+    /// nächsten Wechsel des Datenkontexts wieder zu lösen; sonst hinge das Fenster an zwei Hüllen.
+    /// </summary>
+    private MainViewModel? _boundViewModel;
+
     public MainWindow()
     {
         InitializeComponent();
+
+        // Der Datenkontext wird erst nach dem Konstruktor gesetzt (App.ShowMainWindow); hier steht
+        // er also noch nicht zur Verfügung.
+        DataContextChanged += OnDataContextChanged;
 
         // Ein randloses Fenster mit WindowChrome maximiert sich sonst auf die volle Bildschirmgröße
         // des Monitors statt auf dessen Arbeitsbereich und verdeckt dabei die Taskleiste.
@@ -28,6 +40,41 @@ public partial class MainWindow : Window
         SourceInitialized += OnSourceInitialized;
 
         StateChanged += (_, _) => UpdateMaximizeRestoreGlyph();
+    }
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (_boundViewModel is not null)
+        {
+            _boundViewModel.AsanaConnectRequested -= OnAsanaConnectRequested;
+        }
+
+        _boundViewModel = e.NewValue as MainViewModel;
+
+        if (_boundViewModel is not null)
+        {
+            _boundViewModel.AsanaConnectRequested += OnAsanaConnectRequested;
+        }
+    }
+
+    /// <summary>
+    /// Die Profilseite will Asana verbinden. Das Fenster gehört der Hülle nicht — es zu öffnen ist
+    /// Sache der Ansicht, damit das MainViewModel ohne WPF-Typen prüfbar bleibt.
+    /// </summary>
+    private void OnAsanaConnectRequested(ProfileViewModel profile)
+    {
+        if (_boundViewModel?.CreateAsanaConnectViewModel() is not { } connectViewModel)
+        {
+            return;
+        }
+
+        var window = new AsanaConnectWindow { Owner = this, DataContext = connectViewModel };
+        connectViewModel.Connected += window.Close;
+        window.ShowDialog();
+
+        // Nach dem Schließen den Stand neu lesen — auch bei Abbruch, dann ändert sich nichts.
+        // Der Aufruf setzt zugleich den Asana-Steckplatz der Übersicht neu (AsanaConnectionChanged).
+        profile.RefreshAsanaState();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)

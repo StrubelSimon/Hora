@@ -196,4 +196,95 @@ public class MainViewModelAsanaTests
         Assert.Equal(Now, settings.Settings.LastSyncAt);
         Assert.Null(settings.Settings.AsanaLastSyncAt);
     }
+
+    // ===================== Neuladen nach einem Wechsel der Verbindung =====================
+
+    private static MainViewModel BuildCounting(FakeAsanaCredentialStore asanaStore, out FakeJiraClient client)
+    {
+        var jiraClient = new FakeJiraClient();
+        client = jiraClient;
+
+        return new MainViewModel(
+            new FakeCredentialStore
+            {
+                Stored = new StoredCredentials("https://example.atlassian.net", "a@b.de", "jira-token"),
+            },
+            new FakeSettingsStore(),
+            new NullLogger(),
+            (_, _, _) => jiraClient,
+            () => new DateOnly(2026, 9, 22),
+            asanaCredentialStore: asanaStore,
+            asanaClientFactory: _ => new StubAsanaClient());
+    }
+
+    private static ProfileViewModel OpenProfile(MainViewModel viewModel)
+    {
+        var overview = Assert.IsType<OverviewViewModel>(viewModel.CurrentScreen);
+        overview.ShowProfileCommand.Execute(null);
+        return Assert.IsType<ProfileViewModel>(viewModel.CurrentScreen);
+    }
+
+    /// <summary>
+    /// Der Startweg holt genau einmal. ApplyAsanaConnection läuft dort mit, darf aber nichts
+    /// nachladen: RunInitialLoadAsync stößt den ersten Abruf bereits an. Läge das Neuladen in
+    /// ApplyAsanaConnection statt am Wechsel der Verbindung, stünde hier eine Zwei — zwei volle
+    /// Abrufe bei jedem Start, gegen dieselbe Jira-Instanz. Dieser Test hält die Unterscheidung fest.
+    /// </summary>
+    [Fact]
+    public async Task TheStartupPathFetchesExactlyOnce()
+    {
+        var viewModel = BuildCounting(
+            new FakeAsanaCredentialStore
+            {
+                Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            },
+            out var client);
+
+        await viewModel.StartAsync();
+
+        Assert.Equal(1, client.SearchCalls);
+    }
+
+    /// <summary>
+    /// Nach dem Verbinden erscheinen die Asana-Zeiten sofort und nicht erst beim nächsten Takt.
+    /// Der Steckplatz allein genügt dafür nicht: Die Übersicht steht mit dem Stand da, den sie vor
+    /// dem Wechsel geholt hat.
+    /// </summary>
+    [Fact]
+    public async Task ConnectingAsanaFetchesAgainSoTheTimesShowUpAtOnce()
+    {
+        var asanaStore = new FakeAsanaCredentialStore();
+        var viewModel = BuildCounting(asanaStore, out var client);
+        await viewModel.StartAsync();
+
+        var profile = OpenProfile(viewModel);
+        var callsBefore = client.SearchCalls;
+
+        // Genau dies tut das Verbinden-Fenster: Es speichert die Verbindung, und die Hülle lässt
+        // die Profilseite den Stand danach neu lesen.
+        asanaStore.Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI");
+        profile.RefreshAsanaState();
+
+        Assert.Equal(callsBefore + 1, client.SearchCalls);
+    }
+
+    /// <summary>Und nach dem Trennen verschwinden sie ebenso sofort, statt stehen zu bleiben.</summary>
+    [Fact]
+    public async Task DisconnectingAsanaFetchesAgainSoTheTimesDisappearAtOnce()
+    {
+        var asanaStore = new FakeAsanaCredentialStore
+        {
+            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+        };
+        var viewModel = BuildCounting(asanaStore, out var client);
+        await viewModel.StartAsync();
+
+        var profile = OpenProfile(viewModel);
+        var callsBefore = client.SearchCalls;
+
+        profile.DisconnectAsanaCommand.Execute(null);
+
+        Assert.Null(asanaStore.Stored);
+        Assert.Equal(callsBefore + 1, client.SearchCalls);
+    }
 }

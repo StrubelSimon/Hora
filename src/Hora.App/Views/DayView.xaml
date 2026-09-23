@@ -18,64 +18,27 @@
         <Border Grid.Row="0" Style="{StaticResource Card}">
             <Grid>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,4">
-                    <ItemsControl ItemsSource="{Binding Rows}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <!-- Zeilenhöhe 44, mit Kommentar-Unterzeile 58 (Spec 2.4). -->
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,0,0,1" Padding="16,0">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Height" Value="44"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasComment}" Value="True">
-                                                    <Setter Property="Height" Value="58"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <Grid VerticalAlignment="Center">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" MinWidth="116"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto" MinWidth="72"/>
-                                        </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <!-- Die Zeilenvorlage liegt seit dem Asana-Block als WorklogRowTemplate in
+                             Styles/Theme.xaml: Beide Listen dieser Ansicht brauchen dieselbe, und
+                             zwei Abschriften liefen unweigerlich auseinander. -->
+                        <ItemsControl ItemsSource="{Binding Rows}"
+                                      ItemTemplate="{StaticResource WorklogRowTemplate}"/>
 
-                                        <!-- Farbiger Punkt und anklickbarer Ticket-Schlüssel in Ticketfarbe.
-                                             Die Uhrzeitspalte wurde auf Wunsch des Auftraggebers entfernt;
-                                             WorklogRow.TimeRangeText bleibt berechnet, falls sie zurückkehrt. -->
-                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
-                                            <Border Style="{StaticResource TicketDot}" Margin="0,0,8,0"/>
-                                            <Button Content="{Binding ItemKey}"
-                                                    Style="{StaticResource TicketKeyLink}"
-                                                    Command="{Binding DataContext.OpenIssueCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                                    CommandParameter="{Binding ItemUrl}"/>
-                                        </StackPanel>
-
-                                        <!-- Titel und, falls vorhanden, der Kommentar als graue Unterzeile.
-                                             Beide einzeilig abgeschnitten, voller Text als Mauszeiger-Hinweis. -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                            <TextBlock Text="{Binding ItemSummary}"
-                                                       ToolTip="{Binding ItemSummary}"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding Comment}"
-                                                       ToolTip="{Binding Comment}"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       FontSize="11.5"
-                                                       Foreground="{DynamicResource InkSoftBrush}"
-                                                       Margin="0,2,0,0"
-                                                       Visibility="{Binding HasComment, Converter={StaticResource BoolToVisibility}}"/>
-                                        </StackPanel>
-
-                                        <TextBlock Grid.Column="2"
-                                                   Text="{Binding DurationText}"
-                                                   FontWeight="SemiBold"
-                                                   HorizontalAlignment="Right"
-                                                   VerticalAlignment="Center"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        <!-- Asana-Block: Asana kennt nur einen Tag, keine Uhrzeit. Die Einträge stehen
+                             deshalb unter den chronologischen Jira-Buchungen und nicht zwischen ihnen,
+                             wo sie eine Ordnung vortäuschten, die es nicht gibt. Die Zwischenüberschrift
+                             trennt die beiden Quellen; ein Abzeichen je Zeile wäre hier doppelt
+                             gemoppelt — anders als im Abschnitt „Pro Ticket“, wo beide Quellen nach
+                             Dauer sortiert durcheinanderstehen. -->
+                        <StackPanel Visibility="{Binding HasAsanaRows, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="ASANA"
+                                       Style="{StaticResource SectionLabel}"
+                                       Margin="16,14,0,6"/>
+                            <ItemsControl ItemsSource="{Binding AsanaRows}"
+                                          ItemTemplate="{StaticResource WorklogRowTemplate}"/>
+                        </StackPanel>
+                    </StackPanel>
                 </ScrollViewer>
 
                 <TextBlock Text="Keine Buchungen an diesem Tag."

@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Media;
 using Hora.App.Tests.TestDoubles;
 using Hora.App.ViewModels;
 using Hora.Core.Worklogs;
@@ -35,7 +34,7 @@ public class IssueTotalAlignmentTests
         StaRunner.Run(() =>
         {
             var list = BuildList(MixedRows);
-            var bars = Descendants(list).OfType<ProgressBar>().ToList();
+            var bars = ThemeResources.Descendants(list).OfType<ProgressBar>().ToList();
 
             Assert.Equal(MixedRows.Length, bars.Count);
 
@@ -53,7 +52,7 @@ public class IssueTotalAlignmentTests
         StaRunner.Run(() =>
         {
             var list = BuildList(MixedRows);
-            var bars = Descendants(list).OfType<ProgressBar>().ToList();
+            var bars = ThemeResources.Descendants(list).OfType<ProgressBar>().ToList();
 
             var lefts = bars
                 .Select(bar => Math.Round(bar.TransformToAncestor(list).Transform(new Point(0, 0)).X, 2))
@@ -79,7 +78,7 @@ public class IssueTotalAlignmentTests
             var list = BuildList(MixedRows);
 
             // Je Zeile genau eine Schaltfläche: der Ticketschlüssel, der die Adresse als Befehlswert trägt.
-            var keyButtons = Descendants(list).OfType<Button>().ToList();
+            var keyButtons = ThemeResources.Descendants(list).OfType<Button>().ToList();
             Assert.Equal(MixedRows.Length, keyButtons.Count);
             Assert.Equal(MixedRows.Select(row => row.ItemKey), keyButtons.Select(button => button.Content as string));
             Assert.Equal(MixedRows.Select(row => row.ItemUrl), keyButtons.Select(button => button.CommandParameter as string));
@@ -89,14 +88,48 @@ public class IssueTotalAlignmentTests
             Assert.Equal(MixedRows.Select(row => row.ItemSummary), TextsInColumn(list, 1));
             Assert.Equal(MixedRows.Select(row => row.TotalText), TextsInColumn(list, 3));
 
-            var bars = Descendants(list).OfType<ProgressBar>().ToList();
+            var bars = ThemeResources.Descendants(list).OfType<ProgressBar>().ToList();
             Assert.Equal(MixedRows.Select(row => row.BarRatio), bars.Select(bar => bar.Value));
+        });
+    }
+
+    /// <summary>
+    /// Im Abschnitt „Pro Ticket“ stehen Jira-Tickets und Asana-Projekte in einer gemeinsamen, nach
+    /// Dauer sortierten Liste. Ohne Herkunftszeichen wären sie nicht auseinanderzuhalten: Ein
+    /// Asana-Projekt heißt „Marketing“, nicht „MAS-143“, aber das weiß nur, wer beide Welten kennt.
+    /// Das Zeichen steht ausschließlich bei Asana, damit die gewohnte Jira-Ansicht unverändert
+    /// bleibt — die Vorlage ist dieselbe in Tages-, Wochen- und Monatsansicht.
+    /// </summary>
+    [StaFact]
+    public void Only_asana_rows_carry_the_source_badge()
+    {
+        StaRunner.Run(() =>
+        {
+            IssueTotalRow[] rows =
+            [
+                new(WorklogSource.Jira, "AB-1", "Ein Ticket", "3h", 1, "https://example.atlassian.net/browse/AB-1", 0.5),
+                new(WorklogSource.Asana, "Marketing", "Ein Projekt", "6h", 2, "https://app.asana.com/0/1", 1.0),
+            ];
+
+            var list = BuildList(rows);
+
+            // Das Zeichen ist der einzige Rahmen der Vorlage mit einem Textblock darin; der
+            // Ticketpunkt davor ist leer.
+            var badges = ThemeResources.Descendants(list)
+                .OfType<Border>()
+                .Where(border => border.Child is TextBlock)
+                .ToList();
+
+            Assert.Equal(rows.Length, badges.Count);
+            Assert.Equal(Visibility.Collapsed, badges[0].Visibility);
+            Assert.Equal(Visibility.Visible, badges[1].Visibility);
+            Assert.Equal("Asana", ((TextBlock)badges[1].Child).Text);
         });
     }
 
     /// <summary>Die Texte aller Textblöcke, die unmittelbar in der genannten Gitterspalte stehen.</summary>
     private static IEnumerable<string> TextsInColumn(DependencyObject root, int column) =>
-        Descendants(root)
+        ThemeResources.Descendants(root)
             .OfType<TextBlock>()
             .Where(text => Grid.GetColumn(text) == column)
             .Select(text => text.Text)
@@ -104,14 +137,7 @@ public class IssueTotalAlignmentTests
 
     private static ItemsControl BuildList(IReadOnlyList<IssueTotalRow> rows)
     {
-        var resources = new ResourceDictionary();
-        foreach (var part in new[] { "Styles/Tokens.Light.xaml", "Styles/Theme.xaml" })
-        {
-            resources.MergedDictionaries.Add(new ResourceDictionary
-            {
-                Source = new Uri($"pack://application:,,,/Hora;component/{part}", UriKind.Absolute),
-            });
-        }
+        var resources = ThemeResources.Load();
 
         var panel = new ItemsPanelTemplate();
         panel.VisualTree = new FrameworkElementFactory(typeof(UniformGrid));
@@ -136,19 +162,5 @@ public class IssueTotalAlignmentTests
         host.UpdateLayout();
 
         return list;
-    }
-
-    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
-    {
-        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
-        {
-            var child = VisualTreeHelper.GetChild(root, i);
-            yield return child;
-
-            foreach (var further in Descendants(child))
-            {
-                yield return further;
-            }
-        }
     }
 }

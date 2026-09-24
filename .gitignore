@@ -11,3 +11,6 @@ dist/
 
 # Arbeitsverzeichnis der Superpowers-Ablaufsteuerung
 .superpowers/
+
+# Interne Spezifikationen und Umsetzungsplaene: bleiben lokal, nicht auf GitHub
+docs/

@@ -15,12 +15,12 @@ public partial class ProfileView : UserControl
         "Die gespeicherte Anmeldung wird dabei gelöscht. Beim nächsten Start müssen Sie Ihren " +
         "API-Token erneut eingeben.";
 
-    // Nutzertexte der Rückfrage vor dem Trennen der Asana-Verbindung.
-    private const string AsanaDisconnectCaption = "Asana trennen";
+    // Nutzertexte der Rückfrage vor dem Trennen der Everhour-Verbindung.
+    private const string AsanaDisconnectCaption = "Everhour trennen";
 
     private const string AsanaDisconnectText =
-        "Verbindung zu Asana trennen?\n\n" +
-        "Der gespeicherte Asana-Token wird gelöscht und die Asana-Zeiten verschwinden aus der " +
+        "Verbindung zu Everhour trennen?\n\n" +
+        "Der gespeicherte Everhour-Schlüssel wird gelöscht und die Asana-Zeiten verschwinden aus der " +
         "Übersicht. Die Jira-Anmeldung bleibt bestehen.";
 
     public ProfileView()

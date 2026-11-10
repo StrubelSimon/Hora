@@ -1,0 +1,53 @@
+<Window x:Class="Hora.App.Views.EverhourConnectWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Asana-Zeiten verbinden"
+        Icon="pack://application:,,,/Hora;component/Assets/hora.ico"
+        Width="420"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource CanvasBrush}">
+
+    <!--
+        Datenkontext ist das EverhourConnectViewModel. Ein einziger Schritt: Der Schlüssel wird
+        bei Everhour geprüft und erst dann gespeichert. Die Rückfrage vor dem Trennen liegt auf der
+        Profilseite, nicht hier: Dieses Fenster stellt eine Verbindung her, es löst keine.
+    -->
+    <Border Style="{StaticResource Card}" Margin="16" Padding="24">
+        <StackPanel>
+            <TextBlock Text="Asana-Zeiten verbinden" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Die Asana-Zeiten kommen aus Everhour, dort wird gebucht. Hora liest sie mit dem persönlichen Everhour-API-Schlüssel, ausschließlich lesend. Er wird verschlüsselt auf diesem Rechner abgelegt und nirgends sonst."
+                       Foreground="{DynamicResource InkSoftBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,6,0,0"/>
+
+            <TextBlock Text="Everhour-API-Schlüssel" Style="{StaticResource FieldLabel}"/>
+            <!-- Bewusst ein TextBox und kein PasswordBox: Der Schlüssel wird aus der
+                 Zwischenablage eingefügt. Verdeckt ließe sich ein verrutschtes Einfügen nicht erkennen. -->
+            <TextBox Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FieldTextBox}"/>
+
+            <Button Content="Schlüssel in Everhour finden"
+                    Command="{Binding OpenApiKeyHelpCommand}"
+                    Style="{StaticResource LinkButton}"
+                    HorizontalAlignment="Left"
+                    Margin="0,8,0,0"/>
+
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{DynamicResource NegativeBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,12,0,0"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}"/>
+
+            <Button Content="{Binding ConnectButtonText}"
+                    Command="{Binding ConnectCommand}"
+                    IsDefault="True"
+                    Style="{StaticResource PrimaryButton}"
+                    HorizontalAlignment="Right"
+                    MinWidth="140"
+                    Margin="0,20,0,0"/>
+        </StackPanel>
+    </Border>
+</Window>

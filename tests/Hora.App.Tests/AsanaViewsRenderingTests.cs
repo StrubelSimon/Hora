@@ -3,8 +3,8 @@ using System.Windows.Controls;
 using Hora.App.Tests.TestDoubles;
 using Hora.App.ViewModels;
 using Hora.App.Views;
-using Hora.Core.Asana;
-using Hora.Core.Asana.Models;
+using Hora.Core.Everhour;
+using Hora.Core.Everhour.Models;
 using Hora.Core.Jira.Models;
 using Hora.Core.Storage;
 using Hora.Core.Worklogs;
@@ -17,7 +17,7 @@ namespace Hora.App.Tests;
 /// </summary>
 /// <remarks>
 /// Diese beiden Flächen sind von Hand kaum zu erreichen — für das Fenster braucht es ein
-/// Asana-Konto, für den Abschnitt eine Jira-Anmeldung. Ein toter Bindungspfad bliebe dort besonders
+/// Everhour-Konto, für den Abschnitt eine Jira-Anmeldung. Ein toter Bindungspfad bliebe dort besonders
 /// lange unbemerkt: WPF meldet ihn nicht, die Stelle steht einfach leer da.
 /// </remarks>
 public class AsanaViewsRenderingTests
@@ -27,164 +27,87 @@ public class AsanaViewsRenderingTests
 
     // ===================== Verbinden-Fenster =====================
 
-    private sealed class StubAsanaClient(AsanaUser user) : IAsanaClient
+    private sealed class StubEverhourClient(EverhourUser user) : IEverhourClient
     {
-        public Task<AsanaUser> GetMyselfAsync(CancellationToken cancellationToken) => Task.FromResult(user);
+        public Task<EverhourUser> GetMyselfAsync(CancellationToken cancellationToken) => Task.FromResult(user);
 
-        public Task<IReadOnlyList<AsanaTimeEntry>> GetTimeEntriesAsync(
-            string userGid, string workspaceGid, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<AsanaTimeEntry>>(Array.Empty<AsanaTimeEntry>());
+        public Task<IReadOnlyList<EverhourTimeEntry>> GetTimeEntriesAsync(
+            long userId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<EverhourTimeEntry>>(Array.Empty<EverhourTimeEntry>());
+
+        public Task<EverhourProject> GetProjectAsync(string projectId, CancellationToken cancellationToken) =>
+            Task.FromResult(new EverhourProject { Id = projectId, Name = "Projekt" });
     }
 
-    private static AsanaConnectViewModel ConnectViewModel(params string[] workspaceNames)
-    {
-        var user = new AsanaUser
-        {
-            Gid = "111",
-            Name = "Simon Strubel",
-            Email = "simon.strubel@advisori.de",
-            Workspaces = workspaceNames
-                .Select((name, index) => new AsanaWorkspace { Gid = $"90{index}", Name = name })
-                .ToList(),
-        };
-
-        return new AsanaConnectViewModel(_ => new StubAsanaClient(user), new FakeAsanaCredentialStore());
-    }
+    private static EverhourConnectViewModel ConnectViewModel() => new(
+        _ => new StubEverhourClient(new EverhourUser { Id = 1431001, Name = "Simon Strubel" }),
+        new FakeEverhourCredentialStore());
 
     /// <summary>
-    /// Schritt eins zeigt das Eingabefeld für den Token und die Weiter-Schaltfläche; der
-    /// Workspace-Schritt bleibt ausgeblendet.
+    /// Das Fenster zeigt das Eingabefeld für den Schlüssel, den Weg zum Schlüssel in Everhour und
+    /// die Verbinden-Schaltfläche, die ohne Schlüssel grau bleibt.
     /// </summary>
     [StaFact]
-    public void The_connect_window_opens_on_the_token_step()
+    public void The_connect_window_asks_for_the_everhour_key()
     {
         RenderConnectWindow(
-            ConnectViewModel("ADVISORI"),
+            ConnectViewModel(),
             content =>
             {
-                Assert.Contains("Asana verbinden", VisibleTexts(content));
-                Assert.Equal("Weiter", ButtonLabels(content).Last());
-                Assert.Contains("Token erstellen", ButtonLabels(content));
+                Assert.Contains("Asana-Zeiten verbinden", VisibleTexts(content));
+                Assert.Contains("Everhour-API-Schlüssel", VisibleTexts(content));
+                Assert.Equal(new[] { "Schlüssel in Everhour finden", "Verbinden" }, ButtonLabels(content));
 
-                // Ohne Token ist „Weiter“ grau: Der Befehl sagt es, die Schaltfläche folgt ihm.
+                // Ohne Schlüssel ist „Verbinden“ grau: Der Befehl sagt es, die Schaltfläche folgt ihm.
                 Assert.False(Buttons(content).Last().IsEnabled);
-
-                // Die Workspace-Auswahl gehört zu Schritt zwei und ist hier ausgeblendet.
-                Assert.DoesNotContain(VisibleElements(content), element => element is ComboBox);
+                Assert.True(Buttons(content).Last().IsDefault);
             });
     }
 
     /// <summary>
-    /// Der eingetippte Token landet im Ansichtsmodell, ohne dass das Feld verlassen werden muss —
-    /// sonst bliebe „Weiter“ grau, bis irgendwo hingeklickt wird.
+    /// Der eingetippte Schlüssel landet im Ansichtsmodell, ohne dass das Feld verlassen werden muss —
+    /// sonst bliebe „Verbinden“ grau, bis irgendwo hingeklickt wird.
     /// </summary>
     [StaFact]
-    public void Typing_a_token_reaches_the_view_model_at_once()
+    public void Typing_a_key_reaches_the_view_model_at_once()
     {
-        var viewModel = ConnectViewModel("ADVISORI");
+        var viewModel = ConnectViewModel();
 
         RenderConnectWindow(
             viewModel,
             content =>
             {
                 var field = Descendants(content).OfType<TextBox>().Single();
-                field.Text = "0/1234abcd";
+                field.Text = "eh-1234abcd";
 
-                Assert.Equal("0/1234abcd", viewModel.Token);
-                Assert.True(viewModel.ContinueCommand.CanExecute(null));
+                Assert.Equal("eh-1234abcd", viewModel.ApiKey);
+                Assert.True(viewModel.ConnectCommand.CanExecute(null));
             });
     }
 
-    /// <summary>Eine abgelehnte Anmeldung steht als Meldung da, statt stumm zu verpuffen.</summary>
+    /// <summary>Ein abgelehnter Schlüssel steht als Meldung da, statt stumm zu verpuffen.</summary>
     [StaFact]
-    public void A_rejected_token_shows_its_message()
+    public void A_rejected_key_shows_its_message()
     {
-        var viewModel = ConnectViewModel("ADVISORI");
-        viewModel.ErrorMessage = "Asana hat den Token abgelehnt. Bitte prüfen und erneut versuchen.";
+        var viewModel = ConnectViewModel();
+        viewModel.ErrorMessage = "Everhour hat den Schlüssel abgelehnt. Bitte prüfen und erneut versuchen.";
 
         RenderConnectWindow(
             viewModel,
             content => Assert.Contains(
-                "Asana hat den Token abgelehnt. Bitte prüfen und erneut versuchen.",
+                "Everhour hat den Schlüssel abgelehnt. Bitte prüfen und erneut versuchen.",
                 VisibleTexts(content)));
     }
 
-    /// <summary>
-    /// Schritt zwei zeigt die von Asana bestätigte Kennung und die Workspace-Liste. Die Auswahlliste
-    /// trägt eine eigene Vorlage (FieldComboBox) — ohne sie stünde dort im Dunkelmodus ein helles
-    /// Windows-Feld; mit ihr muss sie den gewählten Namen auch wirklich anzeigen.
-    /// </summary>
-    [StaFact]
-    public void The_workspace_step_shows_the_verified_identity_and_the_workspace_list()
-    {
-        var viewModel = OnWorkspaceStep("ADVISORI", "Nebenprojekt");
-
-        RenderConnectWindow(
-            viewModel,
-            content =>
-            {
-                var texts = VisibleTexts(content);
-                Assert.Contains("Simon Strubel", texts);
-                Assert.Contains("simon.strubel@advisori.de", texts);
-
-                var box = Descendants(content).OfType<ComboBox>().Single();
-                Assert.Equal(2, box.Items.Count);
-                Assert.Same(viewModel.SelectedWorkspace, box.SelectedItem);
-
-                // Die eigene Vorlage muss den gewählten Eintrag zeigen; bliebe sie stumm, stünde im
-                // Feld nichts und niemand wüsste, welcher Workspace gemeint ist.
-                Assert.Contains("ADVISORI", texts);
-
-                Assert.Equal(new[] { "Zurück", "Verbinden" }, ButtonLabels(content));
-            });
-    }
-
-    /// <summary>Die Standardschaltfläche wechselt mit dem Schritt — sonst löste die Eingabetaste in
-    /// Schritt zwei das „Weiter“ aus, das dort nichts mehr zu suchen hat.</summary>
-    [StaFact]
-    public void Only_the_button_of_the_current_step_is_the_default_one()
-    {
-        // Je Schritt ein eigenes Ansichtsmodell: Ein einmal aufgebautes Fenster bleibt an den
-        // Befehlen angemeldet, und ein Schrittwechsel danach liefe von diesem Faden aus in die
-        // Schaltflächen des vorigen Aufbaus — WPF lässt das über Fadengrenzen hinweg nicht zu.
-        RenderConnectWindow(
-            OnTokenStep(),
-            content => Assert.Equal(new[] { "Weiter" }, DefaultButtonLabels(content)));
-
-        RenderConnectWindow(
-            OnWorkspaceStep(),
-            content => Assert.Equal(new[] { "Verbinden" }, DefaultButtonLabels(content)));
-    }
-
-    private static AsanaConnectViewModel OnTokenStep()
-    {
-        var viewModel = ConnectViewModel("ADVISORI");
-        viewModel.Token = "0/1234abcd";
-        return viewModel;
-    }
-
-    private static AsanaConnectViewModel OnWorkspaceStep(params string[] workspaceNames)
-    {
-        var viewModel = ConnectViewModel(workspaceNames.Length == 0 ? ["ADVISORI"] : workspaceNames);
-        viewModel.Token = "0/1234abcd";
-        viewModel.ContinueCommand.Execute(null);
-
-        Assert.True(viewModel.IsWorkspaceStep);
-        return viewModel;
-    }
-
-    private static List<string> DefaultButtonLabels(DependencyObject root) =>
-        Buttons(root).Where(button => button.IsDefault).Select(button => button.Content as string).OfType<string>().ToList();
-
     // ===================== Asana-Abschnitt der Profilseite =====================
 
-    private static ProfileViewModel ProfileViewModel(AsanaCredentials? stored) => new(
+    private static ProfileViewModel ProfileViewModel(EverhourCredentials? stored) => new(
         new FakeSettingsStore(),
         new JiraUser { AccountId = "1", DisplayName = "Simon Strubel", EmailAddress = "a@b.de" },
         "https://example.atlassian.net",
         WorkSchedule.Default(),
         themeSwitcher: null,
-        asanaCredentialStore: new FakeAsanaCredentialStore { Stored = stored });
+        everhourCredentialStore: new FakeEverhourCredentialStore { Stored = stored });
 
     /// <summary>Ohne Verbindung steht der Abschnitt da und bietet das Verbinden an.</summary>
     [StaFact]
@@ -207,18 +130,18 @@ public class AsanaViewsRenderingTests
     }
 
     /// <summary>
-    /// Mit Verbindung nennt die Zeile Name und Workspace, bietet das Trennen an und zeigt den
+    /// Mit Verbindung nennt die Zeile Name und Herkunft, bietet das Trennen an und zeigt den
     /// Zeitpunkt der letzten Synchronisation.
     /// </summary>
     [StaFact]
     public void The_profile_section_shows_the_stored_connection()
     {
         RenderProfile(
-            ProfileViewModel(new AsanaCredentials("t", "111", "Simon Strubel", "900", "ADVISORI")),
+            ProfileViewModel(new EverhourCredentials("k", 1431001, "Simon Strubel")),
             view =>
             {
                 var texts = VisibleTexts(view);
-                Assert.Contains("Simon Strubel · ADVISORI", texts);
+                Assert.Contains("Simon Strubel · über Everhour", texts);
                 Assert.Contains("Trennen", ButtonLabels(view));
                 Assert.Contains("Letzte Synchronisation", SectionTexts(view, "ASANA"));
             });
@@ -231,12 +154,12 @@ public class AsanaViewsRenderingTests
     /// Elements sein und ließe sich so nicht messen. Mit dem Lösen fällt die Vererbung des
     /// Datenkontexts weg, er wird deshalb erneut gesetzt.
     /// </summary>
-    private static void RenderConnectWindow(AsanaConnectViewModel viewModel, Action<FrameworkElement> assert) =>
+    private static void RenderConnectWindow(EverhourConnectViewModel viewModel, Action<FrameworkElement> assert) =>
         ThemeResources.Render(
             WindowWidth,
             () =>
             {
-                var window = new AsanaConnectWindow { DataContext = viewModel };
+                var window = new EverhourConnectWindow { DataContext = viewModel };
                 var content = (FrameworkElement)window.Content;
                 window.Content = null;
                 content.DataContext = viewModel;
@@ -250,7 +173,7 @@ public class AsanaViewsRenderingTests
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root) =>
         ThemeResources.Descendants(root);
 
-    /// <summary>Alle Schaltflächen, die tatsächlich sichtbar sind — der jeweils andere Schritt zählt nicht.</summary>
+    /// <summary>Alle Schaltflächen, die tatsächlich sichtbar sind.</summary>
     private static List<Button> Buttons(DependencyObject root) =>
         VisibleElements(root).OfType<Button>().ToList();
 

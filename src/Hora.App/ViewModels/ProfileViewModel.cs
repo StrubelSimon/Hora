@@ -36,7 +36,7 @@ public partial class ProfileViewModel : ObservableObject
 
     private readonly ISettingsStore _settingsStore;
     private readonly IThemeSwitcher? _themeSwitcher;
-    private readonly IAsanaCredentialStore? _asanaCredentialStore;
+    private readonly IEverhourCredentialStore? _everhourCredentialStore;
 
     // Dieselbe Instanz, an der auch die Übersicht hängt: Ändert der Schrittschalter die
     // Sollstunden, rechnen Kennzahlen und Balken sofort mit den neuen Werten.
@@ -65,7 +65,7 @@ public partial class ProfileViewModel : ObservableObject
         IAppLogger? logger = null,
         ISaveFilePicker? saveFilePicker = null,
         Func<DateTimeOffset>? now = null,
-        IAsanaCredentialStore? asanaCredentialStore = null)
+        IEverhourCredentialStore? everhourCredentialStore = null)
     {
         _settingsStore = settingsStore;
         _themeSwitcher = themeSwitcher;
@@ -118,8 +118,8 @@ public partial class ProfileViewModel : ObservableObject
         // der nicht null ist.
         _targetHours = _schedule.GetWorkdayHours();
 
-        _asanaCredentialStore = asanaCredentialStore;
-        _asanaConnection = asanaCredentialStore?.Load();
+        _everhourCredentialStore = everhourCredentialStore;
+        _asanaConnection = everhourCredentialStore?.Load();
         _isAsanaConnected = _asanaConnection is not null;
         AsanaLastSyncText = FormatLastSync(settings.AsanaLastSyncAt);
 
@@ -183,11 +183,11 @@ public partial class ProfileViewModel : ObservableObject
 
     /// <summary>
     /// Der zuletzt gelesene Stand des Speichers. Bezugspunkt für die Frage, ob sich überhaupt etwas
-    /// geändert hat. <see cref="AsanaCredentials"/> ist ein Record, der Vergleich erfasst damit auch
-    /// einen gewechselten Workspace oder Token bei durchgehend bestehender Verbindung — beides holt
-    /// andere Zeiten und verdient denselben Neuabruf wie ein Verbinden.
+    /// geändert hat. <see cref="EverhourCredentials"/> ist ein Record, der Vergleich erfasst damit
+    /// auch einen gewechselten Schlüssel oder Nutzer bei durchgehend bestehender Verbindung — beides
+    /// holt andere Zeiten und verdient denselben Neuabruf wie ein Verbinden.
     /// </summary>
-    private AsanaCredentials? _asanaConnection;
+    private EverhourCredentials? _asanaConnection;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AsanaStatusText))]
@@ -195,7 +195,7 @@ public partial class ProfileViewModel : ObservableObject
     private bool _isAsanaConnected;
 
     public string AsanaStatusText => _asanaConnection is { } credentials
-        ? $"{credentials.UserName} · {credentials.WorkspaceName}"
+        ? $"{credentials.UserName} · über Everhour"
         : "Nicht verbunden";
 
     public string AsanaActionText => IsAsanaConnected ? "Trennen" : "Verbinden";
@@ -218,13 +218,13 @@ public partial class ProfileViewModel : ObservableObject
     /// </remarks>
     public void RefreshAsanaState()
     {
-        var stored = _asanaCredentialStore?.Load();
+        var stored = _everhourCredentialStore?.Load();
         var changed = stored != _asanaConnection;
         _asanaConnection = stored;
 
         IsAsanaConnected = stored is not null;
 
-        // Auch ohne Wechsel des Verbindungszustands: Ein anderer Workspace ändert den Text, und
+        // Auch ohne Wechsel des Verbindungszustands: Ein anderer Nutzer ändert den Text, und
         // IsAsanaConnected allein löst dann keine Benachrichtigung aus.
         OnPropertyChanged(nameof(AsanaStatusText));
 
@@ -263,7 +263,7 @@ public partial class ProfileViewModel : ObservableObject
     [RelayCommand]
     private void DisconnectAsana()
     {
-        _asanaCredentialStore?.Delete();
+        _everhourCredentialStore?.Delete();
         RefreshAsanaState();
     }
 

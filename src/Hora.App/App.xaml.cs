@@ -1,7 +1,7 @@
 using System.Windows;
 using Hora.App.Services;
 using Hora.App.ViewModels;
-using Hora.Core.Asana;
+using Hora.Core.Everhour;
 using Hora.Core.Jira;
 using Hora.Core.Logging;
 using Hora.Core.Storage;
@@ -59,6 +59,7 @@ public partial class App : Application
     private void ShowMainWindow(AppPaths paths, IAppLogger logger)
     {
         var settingsStore = new JsonSettingsStore(paths);
+        DeleteLegacyAsanaConnection(paths, logger);
 
         // Die Windows-Einstellung wird über SystemEvents beobachtet. Die Meldung kommt auf einem
         // fremden Thread; der Designwechsel fasst Oberfläche an und muss deshalb zurück auf den
@@ -81,13 +82,29 @@ public partial class App : Application
             now: null,
             refreshScheduler: new DispatcherRefreshScheduler(logger),
             saveFilePicker: new SaveFileDialogPicker(),
-            asanaCredentialStore: new DpapiAsanaCredentialStore(paths),
-            asanaClientFactory: AsanaClient.Create);
+            everhourCredentialStore: new DpapiEverhourCredentialStore(paths),
+            everhourClientFactory: EverhourClient.Create);
 
         var window = new MainWindow { DataContext = mainViewModel };
         window.Show();
 
         _ = mainViewModel.StartAsync();
+    }
+
+    /// <summary>
+    /// Räumt die frühere Asana-Verbindung ab. Scheitert das, startet Hora trotzdem: Die Datei ist
+    /// ungenutzt, ein liegengebliebener Rest kostet nichts außer Ordnung.
+    /// </summary>
+    private static void DeleteLegacyAsanaConnection(AppPaths paths, IAppLogger logger)
+    {
+        try
+        {
+            DpapiEverhourCredentialStore.DeleteLegacyAsanaConnection(paths);
+        }
+        catch (Exception ex)
+        {
+            logger.Error("Die frühere Asana-Verbindung konnte nicht gelöscht werden", ex);
+        }
     }
 
     /// <summary>

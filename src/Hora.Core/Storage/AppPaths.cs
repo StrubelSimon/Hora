@@ -16,11 +16,14 @@ public sealed class AppPaths
     public string CredentialsFile => Path.Combine(RootDirectory, "credentials.dat");
 
     /// <summary>
-    /// Eigene Datei für die Asana-Verbindung. Bewusst nicht in credentials.dat: Die entsteht nur,
+    /// Eigene Datei für die Everhour-Verbindung. Bewusst nicht in credentials.dat: Die entsteht nur,
     /// wenn „Angemeldet bleiben" gesetzt ist — wer das abwählt, hätte sonst keinen Ort für den
-    /// Asana-Token. Getrennte Dateien heißen außerdem: Asana trennen fasst die Jira-Anmeldung nicht an.
+    /// Schlüssel. Getrennte Dateien heißen außerdem: Everhour trennen fasst die Jira-Anmeldung nicht an.
     /// </summary>
-    public string AsanaCredentialsFile => Path.Combine(RootDirectory, "asana.dat");
+    public string EverhourCredentialsFile => Path.Combine(RootDirectory, "everhour.dat");
+
+    /// <summary>Die frühere Asana-Verbindung mit Asana-Token. Wird nur noch gelöscht.</summary>
+    public string LegacyAsanaCredentialsFile => Path.Combine(RootDirectory, "asana.dat");
 
     public string SettingsFile => Path.Combine(RootDirectory, "settings.json");
 

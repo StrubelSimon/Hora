@@ -58,17 +58,17 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Die Profilseite will Asana verbinden. Das Fenster gehört der Hülle nicht — es zu öffnen ist
-    /// Sache der Ansicht, damit das MainViewModel ohne WPF-Typen prüfbar bleibt.
+    /// Die Profilseite will die Asana-Zeiten über Everhour verbinden. Das Fenster gehört der Hülle
+    /// nicht — es zu öffnen ist Sache der Ansicht, damit das MainViewModel ohne WPF-Typen prüfbar bleibt.
     /// </summary>
     private void OnAsanaConnectRequested(ProfileViewModel profile)
     {
-        if (_boundViewModel?.CreateAsanaConnectViewModel() is not { } connectViewModel)
+        if (_boundViewModel?.CreateEverhourConnectViewModel() is not { } connectViewModel)
         {
             return;
         }
 
-        var window = new AsanaConnectWindow { Owner = this, DataContext = connectViewModel };
+        var window = new EverhourConnectWindow { Owner = this, DataContext = connectViewModel };
         connectViewModel.Connected += window.Close;
         window.ShowDialog();
 

@@ -61,7 +61,7 @@ Abschnitte:
 | **ZEITERFASSUNG** | Arbeitstage „Mo Di Mi Do Fr Sa So“ | sieben Umschalter; die Unterzeile nennt die Anzahl, zum Beispiel „5 Tage pro Woche“ |
 | | Sollstunden pro Tag | Schrittschalter in halben Stunden, 0 bis 24; gilt für **alle ausgewählten** Arbeitstage |
 | | Erinnerung bei fehlender Buchung | merkt sich nur die Wahl, siehe unten |
-| **ASANA** | Verbindung | Personal Access Token und Workspace. „Verbinden“ öffnet ein kleines Fenster; „Trennen“ fragt zurück und lässt die Jira-Anmeldung stehen |
+| **ASANA** | Verbindung | Everhour-API-Schlüssel, über den die Asana-Zeiten kommen. „Verbinden“ öffnet ein kleines Fenster; „Trennen“ fragt zurück und lässt die Jira-Anmeldung stehen |
 | | Letzte Synchronisation | Zeitpunkt des letzten erfolgreichen Asana-Abrufs |
 | **JIRA** | Instanz | die eigene Jira-Adresse; ein Klick öffnet sie im Browser |
 | | Letzte Synchronisation | Zeitpunkt des letzten erfolgreichen Abrufs, z. B. „17.09.2026, 09:12“. Gab es noch keinen: „–“ |
@@ -86,22 +86,30 @@ Zwei Einschränkungen, die man kennen sollte:
   App bewusst **nicht**: Sie liefe ohnehin nur, solange Hora offen ist. Die Unterzeile „Werktags um
   17:30 Uhr“ beschreibt, was eine spätere Erinnerung täte.
 
-### Asana verbinden
+### Asana verbinden (über Everhour)
 
 - Asana ist **zusätzlich**; angemeldet wird man weiterhin bei Jira.
-- Token anlegen unter <https://app.asana.com/0/my-apps>. Eine E-Mail wird nicht abgefragt – Asana
-  liefert sie zum Token.
-- „Server“ heißt bei Asana **Workspace**. Gehört man zu mehreren, wird einer gewählt.
-- Zeiterfassung gibt es erst ab Asana Business. Auf Starter oder Free meldet Hora „Dieser
-  Asana-Tarif enthält keine Zeiterfassung.“
+- Gebucht wird in Everhour (Browser-Erweiterung in Asana). Hora liest die Asana-Zeiten deshalb aus
+  **Everhour**, nicht aus Asanas eigener Zeiterfassung – und ausschließlich lesend.
+- Verbunden wird mit dem persönlichen **Everhour-API-Schlüssel** (in Everhour unter Profil →
+  „Application Access“). Hora prüft ihn bei Everhour und merkt sich Nutzer-ID und Namen dazu.
+- Übernommen werden nur Everhour-Buchungen auf **Asana-Aufgaben** (`as:`). Everhours eigene
+  Jira-Aufgaben (`jr:`) zählen nie – für Jira-Zeiten ist allein Jira die Quelle.
 - Asana-Einträge tragen **keine Uhrzeit**, nur einen Tag und eine Dauer. In der Tagesansicht stehen
   sie deshalb in einem eigenen Block unter den Jira-Buchungen, mit der Dauer statt einer Zeitspanne.
-- Als Titel zeigt Hora den Namen der Asana-Aufgabe, wenn die Buchung ihn mitbringt. Fehlt er, stehen
-  dort die Kategorien der Buchung, und fehlen auch die, der Projektname.
-- Das Abzeichen zeigt den **Asana-Projektnamen**; „PRO TICKET“ gruppiert entsprechend pro Projekt.
-- Summen, Sollstunden und Differenz rechnen über **beide** Quellen. Wer dieselbe Stunde in Jira und
-  Asana bucht, sieht sie zweimal – Hora rechnet, es interpretiert nicht.
-- Fällt Asana aus, bleiben die Jira-Zahlen stehen; oben erscheint eine gelbe Warnzeile.
+- Als Titel zeigt Hora den Namen der Asana-Aufgabe, das Abzeichen den **Everhour-Projektnamen**;
+  „PRO TICKET“ gruppiert entsprechend pro Projekt. Lässt sich der Projektname nicht ermitteln, steht
+  dort „Asana“ – die Zeit zählt trotzdem.
+- **Keine Doppelzählung.** Summen, Sollstunden und Differenz rechnen über beide Quellen, aber keine
+  Minute zweimal:
+  - Everhour-Buchungen mit einem Kommentar wie `[SYN-2204#wl-42234]` sind Kopien von
+    Jira-Worklogs und fallen immer weg.
+  - Trägt der Name einer Asana-Aufgabe einen Ticketschlüssel (`SYN-2409 – Varda …`) und führt Jira
+    dieses Ticket am selben Tag, gewinnt Jira; die Everhour-Buchung wird ausgeblendet. Dasselbe gilt,
+    wenn Jira die Buchungen dieses Tickets nicht laden konnte.
+  - Ausgeblendetes nennt die gelbe Warnzeile mit Ticket und Tag. Im Zweifel zeigt Hora also eher
+    zu wenig als doppelt – und sagt, wo.
+- Fällt Everhour aus, bleiben die Jira-Zahlen stehen; oben erscheint eine gelbe Warnzeile.
 
 ### Der Monatsexport
 
@@ -270,7 +278,7 @@ Alle Dateien liegen unter `%LOCALAPPDATA%\Hora\`:
 | Datei | Inhalt |
 |---|---|
 | `credentials.dat` | verschlüsselte Zugangsdaten (nur bei „Angemeldet bleiben“) |
-| `asana.dat` | verschlüsselte Asana-Verbindung (Token und gewählter Workspace); entsteht erst beim Verbinden |
+| `everhour.dat` | verschlüsselte Everhour-Verbindung (API-Schlüssel, Nutzer-ID, Name); entsteht erst beim Verbinden. Eine `asana.dat` früherer Versionen löscht Hora beim Start |
 | `settings.json` | Jira-URL, E-Mail, Sollstunden (`schedule`), Design (`theme`) und die Einstellungen der Profilseite |
 | `hora.log` | Fehlerprotokoll, hilfreich bei Supportfragen. Enthält niemals den Token. |
 

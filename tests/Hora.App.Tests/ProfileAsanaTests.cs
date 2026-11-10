@@ -8,21 +8,21 @@ namespace Hora.App.Tests;
 
 public class ProfileAsanaTests
 {
-    private static ProfileViewModel Build(FakeAsanaCredentialStore asanaStore) =>
+    private static ProfileViewModel Build(FakeEverhourCredentialStore asanaStore) =>
         Build(asanaStore, new FakeSettingsStore());
 
-    private static ProfileViewModel Build(FakeAsanaCredentialStore asanaStore, FakeSettingsStore settings) => new(
+    private static ProfileViewModel Build(FakeEverhourCredentialStore asanaStore, FakeSettingsStore settings) => new(
         settings,
         new JiraUser { AccountId = "1", DisplayName = "Simon Strubel", EmailAddress = "a@b.de" },
         "https://example.atlassian.net",
         WorkSchedule.Default(),
         themeSwitcher: null,
-        asanaCredentialStore: asanaStore);
+        everhourCredentialStore: asanaStore);
 
     [Fact]
     public void WithoutConnectionItSaysSoAndOffersConnecting()
     {
-        var profile = Build(new FakeAsanaCredentialStore());
+        var profile = Build(new FakeEverhourCredentialStore());
 
         Assert.False(profile.IsAsanaConnected);
         Assert.Equal("Nicht verbunden", profile.AsanaStatusText);
@@ -30,24 +30,24 @@ public class ProfileAsanaTests
     }
 
     [Fact]
-    public void ConnectedStateShowsNameAndWorkspace()
+    public void ConnectedStateShowsNameAndSource()
     {
-        var profile = Build(new FakeAsanaCredentialStore
+        var profile = Build(new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("t", "111", "Simon Strubel", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("k", 1431001, "Simon Strubel"),
         });
 
         Assert.True(profile.IsAsanaConnected);
-        Assert.Equal("Simon Strubel · ADVISORI", profile.AsanaStatusText);
+        Assert.Equal("Simon Strubel · über Everhour", profile.AsanaStatusText);
         Assert.Equal("Trennen", profile.AsanaActionText);
     }
 
     [Fact]
     public void DisconnectClearsTheStoreAndAnnouncesTheChange()
     {
-        var store = new FakeAsanaCredentialStore
+        var store = new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("t", "111", "Simon Strubel", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("k", 1431001, "Simon Strubel"),
         };
         var profile = Build(store);
         var announced = 0;
@@ -64,7 +64,7 @@ public class ProfileAsanaTests
     [Fact]
     public void ConnectRaisesTheRequestWithoutTouchingTheStore()
     {
-        var store = new FakeAsanaCredentialStore();
+        var store = new FakeEverhourCredentialStore();
         var profile = Build(store);
         var requested = 0;
         profile.AsanaConnectRequested += () => requested++;
@@ -77,8 +77,8 @@ public class ProfileAsanaTests
 
     // ===================== Nur echte Änderungen werden gemeldet =====================
 
-    private static AsanaCredentials Connection(string workspaceGid = "900", string workspaceName = "ADVISORI") =>
-        new("t", "111", "Simon Strubel", workspaceGid, workspaceName);
+    private static EverhourCredentials Connection(string apiKey = "k", string userName = "Simon Strubel") =>
+        new(apiKey, 1431001, userName);
 
     /// <summary>
     /// Am Ereignis hängt ein voller Neuabruf, der die Übersicht zwischendurch leer laufen lässt.
@@ -88,7 +88,7 @@ public class ProfileAsanaTests
     [Fact]
     public void RefreshWithoutAChangeAnnouncesNothing()
     {
-        var profile = Build(new FakeAsanaCredentialStore { Stored = Connection() });
+        var profile = Build(new FakeEverhourCredentialStore { Stored = Connection() });
         var announced = 0;
         profile.AsanaConnectionChanged += () => announced++;
 
@@ -96,14 +96,14 @@ public class ProfileAsanaTests
 
         Assert.Equal(0, announced);
         Assert.True(profile.IsAsanaConnected);
-        Assert.Equal("Simon Strubel · ADVISORI", profile.AsanaStatusText);
+        Assert.Equal("Simon Strubel · über Everhour", profile.AsanaStatusText);
     }
 
     /// <summary>Dasselbe ohne jede Verbindung: Nichts da, nichts geändert, nichts zu melden.</summary>
     [Fact]
     public void RefreshWithoutAConnectionAnnouncesNothing()
     {
-        var profile = Build(new FakeAsanaCredentialStore());
+        var profile = Build(new FakeEverhourCredentialStore());
         var announced = 0;
         profile.AsanaConnectionChanged += () => announced++;
 
@@ -117,7 +117,7 @@ public class ProfileAsanaTests
     [Fact]
     public void ConnectingAnnouncesTheChange()
     {
-        var store = new FakeAsanaCredentialStore();
+        var store = new FakeEverhourCredentialStore();
         var profile = Build(store);
         var announced = 0;
         profile.AsanaConnectionChanged += () => announced++;
@@ -127,28 +127,28 @@ public class ProfileAsanaTests
 
         Assert.Equal(1, announced);
         Assert.True(profile.IsAsanaConnected);
-        Assert.Equal("Simon Strubel · ADVISORI", profile.AsanaStatusText);
+        Assert.Equal("Simon Strubel · über Everhour", profile.AsanaStatusText);
         Assert.Equal("Trennen", profile.AsanaActionText);
     }
 
     /// <summary>
-    /// Ein gewechselter Workspace bei durchgehend bestehender Verbindung ist ebenfalls eine
+    /// Ein gewechselter Schlüssel bei durchgehend bestehender Verbindung ist ebenfalls eine
     /// Änderung: Dahinter stehen andere Zeiten, auch wenn „verbunden ja/nein“ gleich bleibt.
     /// </summary>
     [Fact]
-    public void SwitchingTheWorkspaceAnnouncesTheChange()
+    public void SwitchingTheApiKeyAnnouncesTheChange()
     {
-        var store = new FakeAsanaCredentialStore { Stored = Connection() };
+        var store = new FakeEverhourCredentialStore { Stored = Connection() };
         var profile = Build(store);
         var announced = 0;
         profile.AsanaConnectionChanged += () => announced++;
 
-        store.Stored = Connection("901", "Nebenprojekt");
+        store.Stored = Connection("k2", "Simon S.");
         profile.RefreshAsanaState();
 
         Assert.Equal(1, announced);
         Assert.True(profile.IsAsanaConnected);
-        Assert.Equal("Simon Strubel · Nebenprojekt", profile.AsanaStatusText);
+        Assert.Equal("Simon S. · über Everhour", profile.AsanaStatusText);
     }
 
     /// <summary>
@@ -160,7 +160,7 @@ public class ProfileAsanaTests
     public void AsanaLastSyncTextFollowsAMomentWrittenInTheMeantime()
     {
         var settings = new FakeSettingsStore();
-        var profile = Build(new FakeAsanaCredentialStore(), settings);
+        var profile = Build(new FakeEverhourCredentialStore(), settings);
         var changedProperties = new List<string>();
         profile.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName ?? string.Empty);
 
@@ -198,9 +198,9 @@ public class ProfileAsanaTests
             "https://example.atlassian.net",
             WorkSchedule.Default(),
             themeSwitcher: null,
-            asanaCredentialStore: new FakeAsanaCredentialStore());
+            everhourCredentialStore: new FakeEverhourCredentialStore());
 
         Assert.Equal("17.09.2026, 09:12", withMoment.AsanaLastSyncText);
-        Assert.Equal("–", Build(new FakeAsanaCredentialStore()).AsanaLastSyncText);
+        Assert.Equal("–", Build(new FakeEverhourCredentialStore()).AsanaLastSyncText);
     }
 }

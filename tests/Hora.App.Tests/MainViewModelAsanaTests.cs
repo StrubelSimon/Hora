@@ -1,6 +1,7 @@
 using Hora.App.Tests.TestDoubles;
 using Hora.App.ViewModels;
-using Hora.Core.Asana;
+using Hora.Core.Everhour;
+using Hora.Core.Everhour.Models;
 using Hora.Core.Storage;
 
 namespace Hora.App.Tests;
@@ -8,7 +9,7 @@ namespace Hora.App.Tests;
 public class MainViewModelAsanaTests
 {
     private static MainViewModel Build(
-        FakeAsanaCredentialStore asanaStore,
+        FakeEverhourCredentialStore asanaStore,
         out FakeCredentialStore jiraStore,
         out List<string> tokensUsed)
     {
@@ -25,29 +26,31 @@ public class MainViewModelAsanaTests
             new NullLogger(),
             (_, _, _) => new FakeJiraClient(),
             () => new DateOnly(2026, 9, 22),
-            asanaCredentialStore: asanaStore,
-            asanaClientFactory: token =>
+            everhourCredentialStore: asanaStore,
+            everhourClientFactory: token =>
             {
                 usedTokens.Add(token);
-                return new StubAsanaClient();
+                return new StubEverhourClient();
             });
     }
 
-    private sealed class StubAsanaClient : IAsanaClient
+    private sealed class StubEverhourClient : IEverhourClient
     {
-        public Task<Hora.Core.Asana.Models.AsanaUser> GetMyselfAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(new Hora.Core.Asana.Models.AsanaUser { Gid = "111" });
+        public Task<EverhourUser> GetMyselfAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(new EverhourUser { Id = 1431001 });
 
-        public Task<IReadOnlyList<Hora.Core.Asana.Models.AsanaTimeEntry>> GetTimeEntriesAsync(
-            string userGid, string workspaceGid, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<Hora.Core.Asana.Models.AsanaTimeEntry>>(
-                Array.Empty<Hora.Core.Asana.Models.AsanaTimeEntry>());
+        public Task<IReadOnlyList<EverhourTimeEntry>> GetTimeEntriesAsync(
+            long userId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<EverhourTimeEntry>>(Array.Empty<EverhourTimeEntry>());
+
+        public Task<EverhourProject> GetProjectAsync(string projectId, CancellationToken cancellationToken) =>
+            Task.FromResult(new EverhourProject { Id = projectId, Name = "Projekt" });
     }
 
     [Fact]
     public async Task WithoutStoredConnectionNoAsanaClientIsBuilt()
     {
-        var viewModel = Build(new FakeAsanaCredentialStore(), out _, out var tokensUsed);
+        var viewModel = Build(new FakeEverhourCredentialStore(), out _, out var tokensUsed);
 
         await viewModel.StartAsync();
 
@@ -56,17 +59,17 @@ public class MainViewModelAsanaTests
     }
 
     [Fact]
-    public async Task StoredConnectionBuildsTheClientWithTheSavedToken()
+    public async Task StoredConnectionBuildsTheClientWithTheSavedApiKey()
     {
-        var asanaStore = new FakeAsanaCredentialStore
+        var asanaStore = new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
         };
 
         var viewModel = Build(asanaStore, out _, out var tokensUsed);
         await viewModel.StartAsync();
 
-        Assert.Equal("asana-token", Assert.Single(tokensUsed));
+        Assert.Equal("everhour-key", Assert.Single(tokensUsed));
     }
 
     /// <summary>
@@ -76,9 +79,9 @@ public class MainViewModelAsanaTests
     [Fact]
     public async Task LogoutDeletesTheAsanaConnectionToo()
     {
-        var asanaStore = new FakeAsanaCredentialStore
+        var asanaStore = new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
         };
         var viewModel = Build(asanaStore, out var jiraStore, out _);
         await viewModel.StartAsync();
@@ -99,9 +102,9 @@ public class MainViewModelAsanaTests
     [Fact]
     public async Task LoginViaFormDeletesAnExistingAsanaConnection()
     {
-        var asanaStore = new FakeAsanaCredentialStore
+        var asanaStore = new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
         };
         var viewModel = Build(asanaStore, out var jiraStore, out _);
         // Keine gespeicherte Jira-Sitzung: StartAsync zeigt das Anmeldeformular statt automatisch
@@ -128,9 +131,9 @@ public class MainViewModelAsanaTests
     [Fact]
     public async Task AutomaticLoginAtStartupLeavesAnExistingAsanaConnectionUntouched()
     {
-        var asanaStore = new FakeAsanaCredentialStore
+        var asanaStore = new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
         };
         var viewModel = Build(asanaStore, out _, out var tokensUsed);
 
@@ -139,14 +142,14 @@ public class MainViewModelAsanaTests
         Assert.IsType<OverviewViewModel>(viewModel.CurrentScreen);
         Assert.NotNull(asanaStore.Stored);
         Assert.Equal(0, asanaStore.DeleteCount);
-        Assert.Equal("asana-token", Assert.Single(tokensUsed));
+        Assert.Equal("everhour-key", Assert.Single(tokensUsed));
     }
 
     // ===================== Zeitpunkt des letzten Asana-Abrufs =====================
 
     private static readonly DateTimeOffset Now = new(2026, 9, 22, 8, 30, 0, TimeSpan.FromHours(2));
 
-    private static MainViewModel BuildWith(FakeSettingsStore settings, FakeAsanaCredentialStore asanaStore) =>
+    private static MainViewModel BuildWith(FakeSettingsStore settings, FakeEverhourCredentialStore asanaStore) =>
         new(
             new FakeCredentialStore
             {
@@ -157,8 +160,8 @@ public class MainViewModelAsanaTests
             (_, _, _) => new FakeJiraClient(),
             () => new DateOnly(2026, 9, 22),
             now: () => Now,
-            asanaCredentialStore: asanaStore,
-            asanaClientFactory: _ => new StubAsanaClient());
+            everhourCredentialStore: asanaStore,
+            everhourClientFactory: _ => new StubEverhourClient());
 
     /// <summary>
     /// Der Zeitpunkt des letzten Abrufs wird für Asana getrennt festgehalten: Die Profilseite zeigt
@@ -170,9 +173,9 @@ public class MainViewModelAsanaTests
         var settings = new FakeSettingsStore();
         var viewModel = BuildWith(
             settings,
-            new FakeAsanaCredentialStore
+            new FakeEverhourCredentialStore
             {
-                Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+                Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
             });
 
         await viewModel.StartAsync();
@@ -189,7 +192,7 @@ public class MainViewModelAsanaTests
     public async Task ASuccessfulFetchLeavesTheAsanaMomentEmptyWithoutAConnection()
     {
         var settings = new FakeSettingsStore();
-        var viewModel = BuildWith(settings, new FakeAsanaCredentialStore());
+        var viewModel = BuildWith(settings, new FakeEverhourCredentialStore());
 
         await viewModel.StartAsync();
 
@@ -199,7 +202,7 @@ public class MainViewModelAsanaTests
 
     // ===================== Neuladen nach einem Wechsel der Verbindung =====================
 
-    private static MainViewModel BuildCounting(FakeAsanaCredentialStore asanaStore, out FakeJiraClient client)
+    private static MainViewModel BuildCounting(FakeEverhourCredentialStore asanaStore, out FakeJiraClient client)
     {
         var jiraClient = new FakeJiraClient();
         client = jiraClient;
@@ -213,8 +216,8 @@ public class MainViewModelAsanaTests
             new NullLogger(),
             (_, _, _) => jiraClient,
             () => new DateOnly(2026, 9, 22),
-            asanaCredentialStore: asanaStore,
-            asanaClientFactory: _ => new StubAsanaClient());
+            everhourCredentialStore: asanaStore,
+            everhourClientFactory: _ => new StubEverhourClient());
     }
 
     private static ProfileViewModel OpenProfile(MainViewModel viewModel)
@@ -234,9 +237,9 @@ public class MainViewModelAsanaTests
     public async Task TheStartupPathFetchesExactlyOnce()
     {
         var viewModel = BuildCounting(
-            new FakeAsanaCredentialStore
+            new FakeEverhourCredentialStore
             {
-                Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+                Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
             },
             out var client);
 
@@ -253,7 +256,7 @@ public class MainViewModelAsanaTests
     [Fact]
     public async Task ConnectingAsanaFetchesAgainSoTheTimesShowUpAtOnce()
     {
-        var asanaStore = new FakeAsanaCredentialStore();
+        var asanaStore = new FakeEverhourCredentialStore();
         var viewModel = BuildCounting(asanaStore, out var client);
         await viewModel.StartAsync();
 
@@ -262,7 +265,7 @@ public class MainViewModelAsanaTests
 
         // Genau dies tut das Verbinden-Fenster: Es speichert die Verbindung, und die Hülle lässt
         // die Profilseite den Stand danach neu lesen.
-        asanaStore.Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI");
+        asanaStore.Stored = new EverhourCredentials("everhour-key", 1431001, "Simon");
         profile.RefreshAsanaState();
 
         Assert.Equal(callsBefore + 1, client.SearchCalls);
@@ -278,9 +281,9 @@ public class MainViewModelAsanaTests
     [Fact]
     public async Task CancellingTheConnectWindowFetchesNothingAgain()
     {
-        var asanaStore = new FakeAsanaCredentialStore
+        var asanaStore = new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
         };
         var viewModel = BuildCounting(asanaStore, out var client);
         await viewModel.StartAsync();
@@ -296,15 +299,15 @@ public class MainViewModelAsanaTests
     }
 
     /// <summary>
-    /// Ein gewechselter Workspace bei durchgehend bestehender Verbindung ist ebenfalls eine
+    /// Ein gewechselter Schlüssel bei durchgehend bestehender Verbindung ist ebenfalls eine
     /// Änderung: Dahinter stehen andere Zeiten, auch wenn „verbunden ja/nein" gleich bleibt.
     /// </summary>
     [Fact]
-    public async Task SwitchingTheWorkspaceFetchesAgain()
+    public async Task SwitchingTheApiKeyFetchesAgain()
     {
-        var asanaStore = new FakeAsanaCredentialStore
+        var asanaStore = new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
         };
         var viewModel = BuildCounting(asanaStore, out var client);
         await viewModel.StartAsync();
@@ -312,7 +315,7 @@ public class MainViewModelAsanaTests
         var profile = OpenProfile(viewModel);
         var callsBefore = client.SearchCalls;
 
-        asanaStore.Stored = new AsanaCredentials("asana-token", "111", "Simon", "901", "Nebenprojekt");
+        asanaStore.Stored = new EverhourCredentials("everhour-key-2", 1431001, "Simon");
         profile.RefreshAsanaState();
 
         Assert.Equal(callsBefore + 1, client.SearchCalls);
@@ -322,9 +325,9 @@ public class MainViewModelAsanaTests
     [Fact]
     public async Task DisconnectingAsanaFetchesAgainSoTheTimesDisappearAtOnce()
     {
-        var asanaStore = new FakeAsanaCredentialStore
+        var asanaStore = new FakeEverhourCredentialStore
         {
-            Stored = new AsanaCredentials("asana-token", "111", "Simon", "900", "ADVISORI"),
+            Stored = new EverhourCredentials("everhour-key", 1431001, "Simon"),
         };
         var viewModel = BuildCounting(asanaStore, out var client);
         await viewModel.StartAsync();

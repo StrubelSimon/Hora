@@ -1,4 +1,4 @@
-using Hora.Core.Asana;
+using Hora.Core.Everhour;
 using Hora.Core.Logging;
 using Hora.Core.Worklogs;
 
@@ -41,6 +41,8 @@ public class CompositeWorklogServiceTests
     private static readonly WorklogFetchResult Empty =
         new(Array.Empty<WorklogEntry>(), Array.Empty<string>(), Array.Empty<string>());
 
+    private static readonly TimeZoneInfo Berlin = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+
     private static readonly DateOnly From = new(2026, 9, 21);
     private static readonly DateOnly To = new(2026, 9, 27);
 
@@ -48,8 +50,8 @@ public class CompositeWorklogServiceTests
         key, key, new DateTimeOffset(2026, 9, 21, hour, 0, 0, TimeSpan.FromHours(2)),
         TimeSpan.FromHours(1), string.Empty, "https://example.atlassian.net");
 
-    private static WorklogEntry AsanaEntry(string key) => new(
-        WorklogSource.Asana, key, key,
+    private static WorklogEntry AsanaEntry(string key, string? taskName = null) => new(
+        WorklogSource.Asana, key, taskName ?? key,
         new DateTimeOffset(2026, 9, 21, 0, 0, 0, TimeSpan.FromHours(2)),
         TimeSpan.FromHours(2), string.Empty, "https://app.asana.com/0/1", HasStartTime: false);
 
@@ -58,7 +60,7 @@ public class CompositeWorklogServiceTests
 
     private static CompositeWorklogService Composite(IWorklogService jira, IWorklogService? asana = null)
     {
-        var composite = new CompositeWorklogService(jira, new NullLogger());
+        var composite = new CompositeWorklogService(jira, new NullLogger(), Berlin);
         composite.SetAsanaProvider(asana);
         return composite;
     }
@@ -97,39 +99,28 @@ public class CompositeWorklogServiceTests
         Assert.Equal("B-2", Assert.Single(result.FailedIssueKeys));
     }
 
-    /// <summary>Der tragende Grundsatz: Ein Asana-Fehler darf die Jira-Zahlen nicht antasten.</summary>
+    /// <summary>Der tragende Grundsatz: Ein Everhour-Fehler darf die Jira-Zahlen nicht antasten.</summary>
     [Theory]
-    [InlineData(typeof(AsanaUnavailableException))]
-    [InlineData(typeof(AsanaFeatureUnavailableException))]
-    [InlineData(typeof(AsanaRateLimitException))]
-    public async Task AsanaFailureLeavesJiraEntriesStandingAndAddsAWarning(Type exceptionType)
+    [InlineData(typeof(EverhourUnavailableException))]
+    [InlineData(typeof(EverhourRateLimitException))]
+    [InlineData(typeof(InvalidOperationException))]
+    public async Task EverhourFailureLeavesJiraEntriesStandingAndAddsAWarning(Type exceptionType)
     {
-        var exception = exceptionType == typeof(AsanaUnavailableException)
-            ? new AsanaUnavailableException("weg")
+        var exception = exceptionType == typeof(EverhourUnavailableException)
+            ? new EverhourUnavailableException("weg")
             : (Exception)Activator.CreateInstance(exceptionType)!;
         var composite = Composite(With(JiraEntry("A-1", 9)), new StubWorklogService(exception));
 
         var result = await composite.GetEntriesAsync(From, To, CancellationToken.None);
 
         Assert.Equal("A-1", Assert.Single(result.Entries).ItemKey);
-        Assert.Single(result.Warnings);
         Assert.Contains("Asana", Assert.Single(result.Warnings));
     }
 
     [Fact]
-    public async Task MissingTierIsNamedInTheWarning()
+    public async Task RejectedKeyRaisesTheEventAndWarns()
     {
-        var composite = Composite(With(JiraEntry("A-1", 9)), new StubWorklogService(new AsanaFeatureUnavailableException()));
-
-        var result = await composite.GetEntriesAsync(From, To, CancellationToken.None);
-
-        Assert.Contains("Tarif", Assert.Single(result.Warnings));
-    }
-
-    [Fact]
-    public async Task RevokedTokenRaisesTheEventAndWarns()
-    {
-        var composite = Composite(With(JiraEntry("A-1", 9)), new StubWorklogService(new AsanaAuthenticationException()));
+        var composite = Composite(With(JiraEntry("A-1", 9)), new StubWorklogService(new EverhourAuthenticationException()));
         var raised = 0;
         composite.AsanaTokenRejected += () => raised++;
 
@@ -138,6 +129,37 @@ public class CompositeWorklogServiceTests
         Assert.Equal(1, raised);
         Assert.Single(result.Entries);
         Assert.Contains("neu verbinden", Assert.Single(result.Warnings));
+    }
+
+    /// <summary>
+    /// Der zweite Grundsatz, als Gesamtprobe: Jira 1 h auf SYN-2409, Everhour 2 h auf dem
+    /// Asana-Spiegel desselben Tickets am selben Tag, dazu 2 h Meetings. Für das Ticket zählt 1 h,
+    /// in der Summe also 3 h — nie 5 h.
+    /// </summary>
+    [Fact]
+    public async Task AsanaMirrorOfATicketBookedInJiraThatDayIsNotCountedTwice()
+    {
+        var composite = Composite(
+            With(JiraEntry("SYN-2409", 10)),
+            With(AsanaEntry("Projekt", "SYN-2409 – Varda - Oberfläche"), AsanaEntry("Meetings", "1:1 Meetings")));
+
+        var result = await composite.GetEntriesAsync(From, To, CancellationToken.None);
+
+        Assert.Equal(new[] { "1:1 Meetings", "SYN-2409" }, result.Entries.Select(entry => entry.ItemSummary));
+        Assert.Equal(TimeSpan.FromHours(3), TimeSpan.FromTicks(result.Entries.Sum(entry => entry.Duration.Ticks)));
+        Assert.Contains("SYN-2409 (21.09.)", Assert.Single(result.Warnings));
+    }
+
+    [Fact]
+    public async Task AsanaMirrorOfATicketJiraCouldNotLoadIsHidden()
+    {
+        var jira = new StubWorklogService(new WorklogFetchResult(
+            Array.Empty<WorklogEntry>(), new[] { "SYN-2409" }, Array.Empty<string>()));
+
+        var result = await Composite(jira, With(AsanaEntry("Projekt", "SYN-2409 – Varda"))).GetEntriesAsync(From, To, CancellationToken.None);
+
+        Assert.Empty(result.Entries);
+        Assert.Contains("SYN-2409", Assert.Single(result.Warnings));
     }
 
     /// <summary>Ein Jira-Fehler bleibt ein Jira-Fehler: Die Hülle unterscheidet daran Sitzungsende und Störung.</summary>
@@ -153,7 +175,7 @@ public class CompositeWorklogServiceTests
     }
 
     [Fact]
-    public async Task CancellationIsNotSwallowedAsAnAsanaWarning()
+    public async Task CancellationIsNotSwallowedAsAnEverhourWarning()
     {
         var composite = Composite(With(JiraEntry("A-1", 9)), new StubWorklogService(new OperationCanceledException()));
 

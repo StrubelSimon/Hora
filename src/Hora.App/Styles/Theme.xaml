@@ -429,7 +429,8 @@
     </Style>
 
     <!--
-        Auswahlliste im Zuschnitt der übrigen Eingabefelder (Workspace im Verbinden-Fenster).
+        Auswahlliste im Zuschnitt der übrigen Eingabefelder. Entstanden für die Workspace-Wahl der
+        früheren Asana-Anbindung; seit dem Wechsel auf Everhour derzeit ohne Verwender.
         Vollständig eigene Vorlage und nicht bloß gesetzte Farben: Die Windows-Vorlage zeichnet
         Rahmen, Pfeil und Klappfläche mit fest eingebauten Farbverläufen und ließe sich über
         Background/BorderBrush gar nicht umfärben — im Dunkelmodus bliebe ein helles Feld stehen.
